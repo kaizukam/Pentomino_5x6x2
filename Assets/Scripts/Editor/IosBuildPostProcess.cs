@@ -52,6 +52,50 @@ namespace Pentomino.EditorTools
 
             Debug.Log("Info.plist に " + EncryptionKey + " = false を入れました。\n"
                 + "アップロードのたびに輸出コンプライアンスを訊かれることは、もうありません。");
+
+            DisableUserScriptSandboxing(path);
+        }
+
+        /// <summary>
+        /// Xcode のユーザースクリプトのサンドボックスを切る。
+        ///
+        /// Xcode 15 からビルド中のスクリプトはサンドボックスに入れられる。
+        /// Unity の Xcode プロジェクトは、GameAssembly の Run Script で IL2CPP を走らせ、
+        /// Unity プロジェクト本体や DerivedData を読み書きするので、
+        /// 「Sandbox: ... deny(1) file-read-data / file-write-create」で止まる（2026-10-01、5x6x2）。
+        ///
+        /// Xcode で直しても次の書き出しで消えるので、ここで全ターゲットに入れる。
+        /// </summary>
+        private const string SandboxingKey = "ENABLE_USER_SCRIPT_SANDBOXING";
+
+        private static void DisableUserScriptSandboxing(string path)
+        {
+            var projectPath = PBXProject.GetPBXProjectPath(path);
+            if (!File.Exists(projectPath))
+            {
+                Debug.LogWarning("Xcode プロジェクトが見つかりません: " + projectPath);
+                return;
+            }
+
+            var project = new PBXProject();
+            project.ReadFromFile(projectPath);
+
+            var targets = new[]
+            {
+                project.ProjectGuid(),
+                project.GetUnityMainTargetGuid(),
+                project.GetUnityFrameworkTargetGuid(),
+                project.TargetGuidByName("GameAssembly"),
+            };
+
+            foreach (var guid in targets)
+            {
+                if (string.IsNullOrEmpty(guid)) continue;
+                project.SetBuildProperty(guid, SandboxingKey, "NO");
+            }
+
+            project.WriteToFile(projectPath);
+            Debug.Log("Xcode の " + SandboxingKey + " を NO にしました（IL2CPP の Run Script が止められないように）。");
         }
     }
 }
