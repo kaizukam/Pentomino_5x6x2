@@ -23,17 +23,18 @@ namespace Pentomino.Tests
             FlickRule.Decide(speedX, speedY, travel, still, _settings);
 
         [Test]
-        public void 速く横へ動かしたまま離すと左右反転()
+        public void 速く横へ動かしたまま離すとその向きへ転がす()
         {
-            Assert.AreEqual(FlickAxis.Horizontal, Decide(400f, 0f));
-            Assert.AreEqual(FlickAxis.Horizontal, Decide(-400f, 0f), "逆向きでも同じ");
+            Assert.AreEqual(FlickAxis.Right, Decide(400f, 0f));
+            Assert.AreEqual(FlickAxis.Left, Decide(-400f, 0f), "逆向きなら逆へ");
         }
 
         [Test]
-        public void 速く縦へ動かしたまま離すと上下反転()
+        public void 速く縦へ動かしたまま離すとその向きへ転がす()
         {
-            Assert.AreEqual(FlickAxis.Vertical, Decide(0f, 400f));
-            Assert.AreEqual(FlickAxis.Vertical, Decide(0f, -400f));
+            // 速度は画面の座標で、上が正。
+            Assert.AreEqual(FlickAxis.Up, Decide(0f, 400f));
+            Assert.AreEqual(FlickAxis.Down, Decide(0f, -400f));
         }
 
         [Test]
@@ -66,7 +67,7 @@ namespace Pentomino.Tests
         [Test]
         public void 斜めでも寄っていれば受け付ける()
         {
-            Assert.AreEqual(FlickAxis.Horizontal, Decide(400f, 100f));
+            Assert.AreEqual(FlickAxis.Right, Decide(400f, 100f));
         }
 
         [Test]
@@ -79,7 +80,7 @@ namespace Pentomino.Tests
         public void しきい値ちょうどでも成立する()
         {
             var speed = _settings.ReleaseSpeedMmPerSecond;
-            Assert.AreEqual(FlickAxis.Horizontal, Decide(speed, 0f));
+            Assert.AreEqual(FlickAxis.Right, Decide(speed, 0f));
         }
 
         // ---------------------------------------------------------------- ならし
@@ -254,8 +255,10 @@ namespace Pentomino.Tests
                 FlickRule.Explain(50f, 0f, 30f, 0f, _settings));
             StringAssert.Contains("斜め",
                 FlickRule.Explain(300f, 300f, 30f, 0f, _settings));
-            StringAssert.Contains("左右反転",
+            StringAssert.Contains("右へ",
                 FlickRule.Explain(400f, 0f, 30f, 0f, _settings));
+            StringAssert.Contains("下へ",
+                FlickRule.Explain(0f, -400f, 30f, 0f, _settings));
         }
     }
 }

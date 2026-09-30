@@ -17,15 +17,25 @@ namespace Pentomino.Tests
         }
 
         [Test]
-        public void 問題は2339問ある()
+        public void 問題は264問ある()
         {
-            Assert.AreEqual(2339, _library.Count);
-            Assert.AreEqual("#0001", _library[1].Id);
-            Assert.AreEqual("#2339", _library[2339].Id);
+            Assert.AreEqual(264, _library.Count);
+            Assert.AreEqual("$0001", _library[1].Id);
+            Assert.AreEqual("$0264", _library[264].Id);
         }
 
         [Test]
-        public void 全問題の解が6X10を過不足なく埋める()
+        public void 級ごとの問題数は表から数える()
+        {
+            // 表を入れ替えると分布は変わる。足し上げが全問に一致することだけを確かめる。
+            var counts = _library.CountsByLevel();
+            var total = 0;
+            foreach (var count in counts) total += count;
+            Assert.AreEqual(_library.Count, total);
+        }
+
+        [Test]
+        public void 全問題の解が5x6x2を過不足なく埋める()
         {
             foreach (var puzzle in _library.All)
             {
@@ -63,18 +73,33 @@ namespace Pentomino.Tests
         }
 
         [Test]
-        public void Answerは列優先の探索順に並んでいる()
+        public void Answerは探索順に並んでいる()
         {
-            // 先頭から (12 - Lvl) 個を置くと盤面が左から埋まる、という出題形式の前提。
+            // 先頭から (12 - Lvl) 個を置くと盤面が上から埋まる、という出題形式の前提。
+            // 探索順は、上の行から、左の格子の左から右、続けて右の格子の左から右。
             foreach (var puzzle in _library.All)
             {
                 var previous = -1;
                 foreach (var placement in puzzle.Solution)
                 {
-                    var key = placement.Col * Board.Rows + placement.Row;
-                    Assert.Greater(key, previous, puzzle.Id + " の並び順が列優先でない");
+                    var key = Board.LinearIndex(placement.Row, placement.Col, placement.Layer);
+                    Assert.Greater(key, previous, puzzle.Id + " の並び順が探索順でない");
                     previous = key;
                 }
+            }
+        }
+
+        [Test]
+        public void 出題時の盤面では探索順で最初の空きが隠したピースの原点()
+        {
+            // 未収納のピースは盤の下のほうに残る。Hint が末尾から埋めるのもこの並びが前提。
+            foreach (var puzzle in _library.All)
+            {
+                var board = puzzle.BuildInitialBoard();
+                Assert.IsTrue(board.TryFindFirstEmpty(out var cell), puzzle.Id);
+
+                var first = new System.Collections.Generic.List<Placement>(puzzle.Hidden)[0];
+                Assert.AreEqual(new Cell(first.Row, first.Col, first.Layer), cell, puzzle.Id);
             }
         }
 
@@ -106,8 +131,8 @@ namespace Pentomino.Tests
         {
             Assert.AreEqual(1, _library.Offset(1, -10));
             Assert.AreEqual(11, _library.Offset(1, 10));
-            Assert.AreEqual(2339, _library.Offset(2339, 10));
-            Assert.AreEqual(2329, _library.Offset(2339, -10));
+            Assert.AreEqual(264, _library.Offset(264, 10));
+            Assert.AreEqual(254, _library.Offset(264, -10));
         }
 
         [Test]

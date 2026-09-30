@@ -141,10 +141,11 @@ namespace Pentomino.View
         {
             if (_posture == null) return;
 
-            _posture = axis == FlickAxis.Horizontal
-                ? _posture.FlippedHorizontally
-                : _posture.FlippedVertically;
+            // 本番と同じく転がす。回せない向きなら姿勢はそのまま。
+            var rolled = _posture.Rolled(axis);
+            if (rolled == null) return;
 
+            _posture = rolled;
             _view.RenderPiece(_posture, _style);
         }
     }

@@ -46,6 +46,17 @@ namespace Pentomino.Tests
         }
 
         [Test]
+        public void 段の違うセルは接していない()
+        {
+            // 立てたピースの上下の段は、画面では左右の格子に分かれて描く。
+            Build(new Cell(0, 0, 0), new Cell(0, 0, 1));
+
+            Assert.AreEqual(0, _inner.Count);
+            Assert.AreEqual(8, _outer.Count);
+            Assert.AreEqual(8, TotalLength(_outer));
+        }
+
+        [Test]
         public void 連続する外周は1本にまとめられる()
         {
             // I ペントミノを横一列に。上下はそれぞれ長さ 5 の 1 本になる。
@@ -75,8 +86,14 @@ namespace Pentomino.Tests
                 Assert.AreEqual(Pieces.CellsPerPiece * 4,
                     TotalLength(_outer) + 2 * TotalLength(_inner), posture.Key);
 
-                // 2x2 の塊を持つ P だけ隣接が 1 組多く、周長がその分短い。
-                var expectedInner = posture.Piece == 'P' ? 5 : 4;
+                // 内部線は同じ段で隣り合うセルの組の数。段の違うセルは接していない扱い
+                // （立てたピースは左右の格子に分かれて描く）なので、立てた姿勢では少なくなる。
+                var expectedInner = SameLayerNeighbours(posture);
+                if (!posture.IsStanding)
+                {
+                    // 2x2 の塊を持つ P だけ隣接が 1 組多く、周長がその分短い。
+                    Assert.AreEqual(posture.Piece == 'P' ? 5 : 4, expectedInner, posture.Key);
+                }
                 Assert.AreEqual(expectedInner, TotalLength(_inner), posture.Key + " の内部線");
                 Assert.AreEqual(20 - 2 * expectedInner, TotalLength(_outer), posture.Key + " の外周長");
             }
@@ -100,16 +117,31 @@ namespace Pentomino.Tests
         }
 
         [Test]
-        public void BOXは外周が32で内部が104()
+        public void BOXは左右の格子それぞれ外周が22で内部が49()
         {
             PieceGeometry.Build(PieceGeometry.BoardCells(), _outer, _inner);
 
-            Assert.AreEqual(2 * (Board.Rows + Board.Cols), TotalLength(_outer), "外周長 = 2*(6+10)");
+            Assert.AreEqual(Board.Layers * 2 * (Board.Rows + Board.Cols), TotalLength(_outer), "外周長 = 2 x 2*(6+5)");
 
-            // 内部の格子線: 縦 9 本 x 6 セル + 横 5 本 x 10 セル。
-            Assert.AreEqual(9 * Board.Rows + 5 * Board.Cols, TotalLength(_inner));
-            Assert.AreEqual(4, _outer.Count, "外周は 4 本にまとまる");
-            Assert.AreEqual(9 + 5, _inner.Count, "内部は縦 9 本と横 5 本にまとまる");
+            // 内部の格子線: 縦 4 本 x 6 セル + 横 5 本 x 5 セル を 2 つ。
+            Assert.AreEqual(Board.Layers * (4 * Board.Rows + 5 * Board.Cols), TotalLength(_inner));
+            Assert.AreEqual(Board.Layers * 4, _outer.Count, "外周は格子ごとに 4 本にまとまる");
+            Assert.AreEqual(Board.Layers * (4 + 5), _inner.Count, "内部は格子ごとに縦 4 本と横 5 本にまとまる");
+        }
+
+        private static int SameLayerNeighbours(Posture posture)
+        {
+            var count = 0;
+            var cells = posture.Cells;
+            for (var i = 0; i < cells.Count; i++)
+                for (var j = i + 1; j < cells.Count; j++)
+                {
+                    var a = cells[i];
+                    var b = cells[j];
+                    if (a.Layer != b.Layer) continue;
+                    if (System.Math.Abs(a.Row - b.Row) + System.Math.Abs(a.Col - b.Col) == 1) count++;
+                }
+            return count;
         }
 
         [Test]
@@ -122,7 +154,7 @@ namespace Pentomino.Tests
 
         private static GridLine Unit(GridLine line, int offset) =>
             line.Horizontal
-                ? new GridLine(line.Row, line.Col + offset, 1, true)
-                : new GridLine(line.Row + offset, line.Col, 1, false);
+                ? new GridLine(line.Row, line.Col + offset, 1, true, line.Layer)
+                : new GridLine(line.Row + offset, line.Col, 1, false, line.Layer);
     }
 }

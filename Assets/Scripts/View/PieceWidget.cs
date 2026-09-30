@@ -11,10 +11,10 @@ namespace Pentomino.View
         void OnPieceDrag(PieceWidget widget, PointerEventData eventData);
         void OnPieceRelease(PieceWidget widget, PointerEventData eventData);
 
-        /// <summary>軽いタップ。反時計回りに 90 度回す。</summary>
+        /// <summary>軽いタップ。画面の面内で反時計回りに 90 度回す。</summary>
         void OnPieceTap(PieceWidget widget);
 
-        /// <summary>勢いをつけたまま離した。横向きなら左右反転、縦向きなら上下反転。</summary>
+        /// <summary>勢いをつけたまま離した。その向きへ 90 度（収まらなければ 180 度）転がす。</summary>
         void OnPieceFlick(PieceWidget widget, FlickAxis axis);
 
         /// <summary>フリックの判定に使うしきい値。設定画面で変えられる。</summary>
@@ -25,7 +25,7 @@ namespace Pentomino.View
     /// 指で操作できるピース 1 個。
     /// 触れば指を追いかけ、離せばその場に留まる。
     ///
-    /// 軽いタップで反時計回りに 90 度。掴んだまま素早く滑らせると反転する。
+    /// 軽いタップで反時計回りに 90 度。掴んだまま素早く滑らせると、その向きへ 90 度転がる。
     /// タップ回数で 2 種類の操作を分けると、2 回目を待つあいだ回転が遅れてしまう。
     /// 別の操作に分けたことで、タップは押した瞬間に効く。
     ///
@@ -96,6 +96,10 @@ namespace Pentomino.View
         public void SetOutline(bool held, bool snapped, PentominoStyle style)
         {
             IsSnapped = snapped;
+            _held = held;
+
+            // 点滅の最中は色を点滅に任せる。終われば最後の状態の色に戻る。
+            if (_blink != null) return;
 
             if (style == null)
             {
@@ -111,18 +115,59 @@ namespace Pentomino.View
         /// <summary>いまはめ込み位置に吸い付いているか。</summary>
         public bool IsSnapped { get; private set; }
 
-        /// <summary>原点セル (posture の (0,0)) の中心のワールド座標。</summary>
+        /// <summary>警告の点滅の回数。</summary>
+        public const int WarningBlinks = 2;
+
+        /// <summary>点滅 1 回の、赤い時間と消えている時間（秒）。</summary>
+        public const float WarningBlinkSeconds = 0.12f;
+
+        private Coroutine _blink;
+
+        /// <summary>
+        /// 外周を <see cref="WarningBlinks"/> 回赤く点滅させる。
+        /// フリックが 90 度ではなく 180 度になったとき（または回せなかったとき）の警告。
+        /// 点滅が終われば、そのときの状態（吸い付き・掴み）の色に戻る。
+        /// </summary>
+        public void BlinkWarning(PentominoStyle style)
+        {
+            if (style == null || !isActiveAndEnabled) return;
+            if (_blink != null) StopCoroutine(_blink);
+            _blink = StartCoroutine(Blink(style));
+        }
+
+        private System.Collections.IEnumerator Blink(PentominoStyle style)
+        {
+            var wait = new WaitForSecondsRealtime(WarningBlinkSeconds);
+            for (var i = 0; i < WarningBlinks; i++)
+            {
+                View.Graphic.OuterLineColor = style.heldLineColor;
+                yield return wait;
+                View.Graphic.OuterLineColor = style.lineColor;
+                yield return wait;
+            }
+
+            _blink = null;
+            SetOutline(_held, IsSnapped, style);
+        }
+
+        /// <summary>SetOutline で最後に渡した「掴んでいる」。点滅のあとに戻す色に使う。</summary>
+        private bool _held;
+
+        /// <summary>姿勢の原点セル。</summary>
+        private static readonly Cell Origin = new Cell(0, 0, 0);
+
+        /// <summary>原点セル (posture の (0,0,0)) の中心のワールド座標。</summary>
         public Vector3 OriginCellCenterWorld =>
-            View.Graphic.transform.TransformPoint(View.Graphic.CellCenter(0, 0));
+            View.Graphic.transform.TransformPoint(View.Graphic.CellCenter(Origin));
 
         /// <summary>原点セルの左上角のワールド座標。はめ込み位置との距離を測るのに使う。</summary>
         public Vector3 OriginCellCornerWorld =>
-            View.Graphic.transform.TransformPoint(View.Graphic.CellCorner(0, 0));
+            View.Graphic.transform.TransformPoint(View.Graphic.CellCorner(Origin));
 
         /// <summary>原点セルの左上角がワールド座標の target に来るよう平行移動する。</summary>
         public void MoveOriginCornerTo(Vector3 target)
         {
-            var current = View.Graphic.transform.TransformPoint(View.Graphic.CellCorner(0, 0));
+            var current = View.Graphic.transform.TransformPoint(View.Graphic.CellCorner(Origin));
             transform.position += target - current;
         }
 

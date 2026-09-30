@@ -20,31 +20,42 @@ namespace Pentomino.Tests
         }
 
         [Test]
-        public void 空きセル探索は列優先()
+        public void 空きセル探索は行ごとに左の格子から右の格子へ()
         {
             var board = new Board();
-            Assert.IsTrue(board.TryFindFirstEmpty(out var row, out var col));
-            Assert.AreEqual(0, row);
-            Assert.AreEqual(0, col);
+            Assert.IsTrue(board.TryFindFirstEmpty(out var cell));
+            Assert.AreEqual(new Cell(0, 0, 0), cell);
 
-            // 左端の列を埋めると、行方向に空きが残っていても次の列へ進む。
-            board.Place(new Placement(_db.Get("L06"), 0, 0));   // (0,0)(1,0)(2,0)(3,0)(0,1)
-            board.Place(new Placement(_db.Get("P02"), 4, 0));   // (4,0)(5,0)(3,1)(4,1)(5,1)
-            Assert.IsTrue(board.TryFindFirstEmpty(out row, out col));
-            Assert.AreEqual(1, col, "左端の列が埋まったら次の列へ進むはず");
-            Assert.AreEqual(1, row);
+            // 左の格子の最上行を埋めると、同じ行の右の格子へ進む。
+            board.Place(new Placement(_db.Get("I01"), 0, 0, 0));   // 行 0 の列 0..4、段 0
+            Assert.IsTrue(board.TryFindFirstEmpty(out cell));
+            Assert.AreEqual(new Cell(0, 0, 1), cell, "左の格子の行が埋まったら、右の格子の同じ行へ進むはず");
+
+            // 右の格子も左から右へ。
+            board.Place(new Placement(_db.Get("L06"), 0, 0, 1));   // 行 0 の列 0..3 と (1,0)、段 1
+            Assert.IsTrue(board.TryFindFirstEmpty(out cell));
+            Assert.AreEqual(new Cell(0, 4, 1), cell);
+
+            // 右の格子の行も埋まると、1 行下の左の格子へ。
+            board.Place(new Placement(_db.Get("V03"), 0, 4, 1));   // (0,4)(1,4)(2,2)(2,3)(2,4)、段 1
+            Assert.IsTrue(board.TryFindFirstEmpty(out cell));
+            Assert.AreEqual(new Cell(1, 0, 0), cell);
         }
 
         [Test]
         public void 盤外や重なりは置けない()
         {
             var board = new Board();
-            Assert.IsFalse(board.CanPlace(new Placement(_db.Get("I00"), 0, 6)), "右にはみ出す");
-            Assert.IsFalse(board.CanPlace(new Placement(_db.Get("I01"), 2, 0)), "下にはみ出す");
+            Assert.IsFalse(board.CanPlace(new Placement(_db.Get("I01"), 0, 1, 0)), "右にはみ出す");
+            Assert.IsFalse(board.CanPlace(new Placement(_db.Get("I00"), 2, 0, 0)), "下にはみ出す");
+            Assert.IsFalse(board.CanPlace(new Placement(_db.Get("L09"), 0, 0, 1)), "段を越える");
+            Assert.IsFalse(board.CanPlace(new Placement(_db.Get("N13"), 0, 0, 0)), "手前の段を越える");
+            Assert.IsTrue(board.CanPlace(new Placement(_db.Get("N13"), 0, 0, 1)), "立てて置ける");
 
-            Assert.IsTrue(board.TryPlace(new Placement(_db.Get("X00"), 1, 0)));
-            Assert.IsFalse(board.TryPlace(new Placement(_db.Get("I00"), 1, 0)), "重なる");
-            Assert.IsFalse(board.TryPlace(new Placement(_db.Get("X00"), 1, 5)), "同じピースは 2 度置けない");
+            Assert.IsTrue(board.TryPlace(new Placement(_db.Get("X00"), 0, 1, 0)));
+            Assert.IsFalse(board.TryPlace(new Placement(_db.Get("I00"), 0, 1, 0)), "重なる");
+            Assert.IsTrue(board.CanPlace(new Placement(_db.Get("I00"), 0, 1, 1)), "右の格子の同じ場所は空いている");
+            Assert.IsFalse(board.TryPlace(new Placement(_db.Get("X00"), 0, 1, 1)), "同じピースは 2 度置けない");
         }
 
         [Test]
@@ -53,13 +64,21 @@ namespace Pentomino.Tests
             var board = new Board();
             var before = board.ToText();
 
-            board.Place(new Placement(_db.Get("X00"), 1, 0));
+            board.Place(new Placement(_db.Get("L09"), 1, 0, 0));
             Assert.AreEqual(Pieces.CellsPerPiece, board.FilledCount);
+            Assert.AreEqual('L', board[1, 0, 1], "立てたピースは右の格子にもかかる");
 
-            Assert.IsTrue(board.Remove('X'));
+            Assert.IsTrue(board.Remove('L'));
             Assert.AreEqual(0, board.FilledCount);
             Assert.AreEqual(before, board.ToText());
-            Assert.IsFalse(board.Remove('X'));
+            Assert.IsFalse(board.Remove('L'));
+        }
+
+        [Test]
+        public void 線形索引とセルは往復する()
+        {
+            for (var i = 0; i < Board.CellCount; i++)
+                Assert.AreEqual(i, Board.LinearIndex(Board.CellAt(i)));
         }
 
         [Test]
@@ -78,7 +97,7 @@ namespace Pentomino.Tests
         [Test]
         public void 出題状態から解を1つは見つけられる()
         {
-            foreach (var number in new[] { 1, 100, 1000, 2339 })
+            foreach (var number in new[] { 1, 100, 200, 264 })
             {
                 var puzzle = _library[number];
                 var board = puzzle.BuildInitialBoard();
@@ -119,9 +138,11 @@ namespace Pentomino.Tests
         [Test]
         public void 孤立した空きセルが出来る盤面は0通り()
         {
-            // X00 を (1,0) に置くと (0,0) が四方を塞がれて 1 セルだけ孤立する。
+            // X00 を左の格子の (0,1) に、I01 を右の格子の最上行に置くと、
+            // 左の格子の (0,0) が右・下・奥を塞がれて 1 セルだけ孤立する。
             var board = new Board();
-            board.Place(new Placement(_db.Get("X00"), 1, 0));
+            board.Place(new Placement(_db.Get("X00"), 0, 1, 0));
+            board.Place(new Placement(_db.Get("I01"), 0, 0, 1));
 
             Assert.AreEqual(0, _solver.CountCompletions(board, MissingPieces(board), 1));
             Assert.IsFalse(_solver.CanComplete(board, MissingPieces(board)));

@@ -63,9 +63,18 @@ namespace Pentomino.View
         [Tooltip("ピースごとの色。アルファベット順 FILNPTUVWXYZ")]
         public Color[] pieceColors = ToColors(DefaultPieceColors);
 
+        [Tooltip("左右の格子（段 0 と段 1）の太線と太線の間の隙間。セル一辺に対する比率")]
+        [Range(0f, 1f)] public float layerGapRatio = 0.2f;
+
         public float OuterLineWidth => cellSize * outerLineRatio;
 
         public float InnerLineWidth => cellSize * innerLineRatio;
+
+        /// <summary>
+        /// 段が 1 つ違うセルの横の隔たり。左の格子の幅に、太線 1 本分と隙間を足したもの。
+        /// 盤でも待機場所でも同じ値なので、立てたピースの左右の部分は、盤の左右の格子と同じ間隔で並ぶ。
+        /// </summary>
+        public float LayerStride => Board.Cols * cellSize + OuterLineWidth + cellSize * layerGapRatio;
 
         /// <summary>ピースの色。未設定なら既定色を返す。</summary>
         public Color ColorOf(char piece)

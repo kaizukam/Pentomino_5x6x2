@@ -5,8 +5,8 @@ namespace Pentomino.Core
 {
     /// <summary>
     /// 盤面の空き部分を残りピースで埋められるかを調べるバックトラック探索。
-    /// 列優先の探索順で最初の空きセルを選び、そこを原点セルとして各姿勢を試す。
-    /// 姿勢の原点が常に「最左列の最上セル」に正規化されているため、この 1 通りの試し方で網羅できる。
+    /// 探索順（Board を参照）で最初の空きセルを選び、そこを原点セルとして各姿勢を試す。
+    /// 姿勢の原点が常に「探索順で最初のセル」に正規化されているため、この 1 通りの試し方で網羅できる。
     /// </summary>
     public sealed class PentominoSolver
     {
@@ -99,8 +99,7 @@ namespace Pentomino.Core
                 return;
             }
 
-            var row = index % Board.Rows;
-            var col = index / Board.Rows;
+            var origin = Board.CellAt(index);
 
             for (var p = 0; p < Pieces.Count; p++)
             {
@@ -109,45 +108,44 @@ namespace Pentomino.Core
 
                 foreach (var posture in _posturesByPiece[p])
                 {
-                    if (!TryOccupy(posture, row, col)) continue;
+                    if (!TryOccupy(posture, origin)) continue;
 
                     _remainingMask &= ~bit;
-                    _current?.Add(new Placement(posture, row, col));
+                    _current?.Add(new Placement(posture, origin.Row, origin.Col, origin.Layer));
 
                     Search(index);
 
                     _current?.RemoveAt(_current.Count - 1);
                     _remainingMask |= bit;
-                    Release(posture, row, col);
+                    Release(posture, origin);
 
                     if (_found >= _limit) return;
                 }
             }
         }
 
-        private bool TryOccupy(Posture posture, int row, int col)
+        private bool TryOccupy(Posture posture, Cell origin)
         {
             var cells = posture.Cells;
             for (var i = 0; i < cells.Count; i++)
             {
-                var r = row + cells[i].Row;
-                var c = col + cells[i].Col;
-                if (!Board.InRange(r, c) || _cells[Board.LinearIndex(r, c)] != Board.Empty)
+                var cell = origin.Offset(cells[i].Row, cells[i].Col, cells[i].Layer);
+                if (!Board.InRange(cell) || _cells[Board.LinearIndex(cell)] != Board.Empty)
                 {
                     // ここまでに埋めた分を戻す。
                     for (var j = 0; j < i; j++)
-                        _cells[Board.LinearIndex(row + cells[j].Row, col + cells[j].Col)] = Board.Empty;
+                        _cells[Board.LinearIndex(origin.Offset(cells[j].Row, cells[j].Col, cells[j].Layer))] = Board.Empty;
                     return false;
                 }
-                _cells[Board.LinearIndex(r, c)] = posture.Piece;
+                _cells[Board.LinearIndex(cell)] = posture.Piece;
             }
             return true;
         }
 
-        private void Release(Posture posture, int row, int col)
+        private void Release(Posture posture, Cell origin)
         {
             foreach (var cell in posture.Cells)
-                _cells[Board.LinearIndex(row + cell.Row, col + cell.Col)] = Board.Empty;
+                _cells[Board.LinearIndex(origin.Offset(cell.Row, cell.Col, cell.Layer))] = Board.Empty;
         }
 
         private static int CountBits(int value)

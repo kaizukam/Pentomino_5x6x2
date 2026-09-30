@@ -41,7 +41,7 @@ namespace Pentomino.Core
             BuildTransformTables();
         }
 
-        /// <summary>全 63 姿勢（ピース名、姿勢番号の順）。</summary>
+        /// <summary>全 99 姿勢（ピース名、姿勢番号の順）。</summary>
         public IReadOnlyList<Posture> All => _all;
 
         public int Count => _all.Length;
@@ -81,30 +81,38 @@ namespace Pentomino.Core
         /// <summary>そのピースの既定姿勢（姿勢番号 00）。上級の待機場所で使う。</summary>
         public Posture DefaultPosture(char piece) => Get(piece + "00");
 
-        /// <summary>反転しても回転だけで元に戻せるピースか（I, T, U, V, W, X）。</summary>
-        public bool IsAchiral(char piece) => PosturesOf(piece)[0].IsAchiral;
-
         /// <summary>
-        /// 原点セルが「最左列の最上セル」に正規化されているかを検証する。
-        /// Answer 文字列の座標はこの規約を前提としている（開発仕様 V1 83 行目）。
+        /// 原点セルが「解を探す順で最初のセル」に正規化されているかを検証する。
+        /// 解を探す順は、上の行から、左の格子（Layer 0）の左から右、続けて右の格子（Layer 1）の左から右。
+        /// Answer 文字列の座標はこの規約を前提としている。
         /// </summary>
         private static void ValidateNormalized(Posture posture)
         {
-            if (posture.Cells[0] != new Cell(0, 0))
-                throw new FormatException(posture.Key + ": 先頭のセルが原点 (0,0) ではありません。");
-            if (posture.MinCol != 0)
-                throw new FormatException(posture.Key + ": 原点が最左列にありません。");
+            if (posture.Cells[0] != new Cell(0, 0, 0))
+                throw new FormatException(posture.Key + ": 先頭のセルが原点 (0,0,0) ではありません。");
 
             foreach (var c in posture.Cells)
             {
-                if (c.Col == 0 && c.Row < 0)
-                    throw new FormatException(posture.Key + ": 最左列に原点より上のセルがあります。");
+                if (ScanOrder(c, new Cell(0, 0, 0)) < 0)
+                    throw new FormatException(posture.Key + ": 原点より先に探すセル " + c + " があります。");
             }
+
+            if (posture.Depth > Board.Layers)
+                throw new FormatException(posture.Key + ": BOX の段数 " + Board.Layers + " に収まりません。");
+        }
+
+        /// <summary>解を探す順での前後。負なら a が先。</summary>
+        private static int ScanOrder(Cell a, Cell b)
+        {
+            var c = a.Row.CompareTo(b.Row);
+            if (c != 0) return c;
+            c = a.Layer.CompareTo(b.Layer);
+            return c != 0 ? c : a.Col.CompareTo(b.Col);
         }
 
         private void BuildTransformTables()
         {
-            // 正規形（原点を最左列の最上セルに揃えた形）から姿勢を引く索引。
+            // 正規形（原点を探す順の先頭セルに揃えた形）から姿勢を引く索引。
             var byShape = new Dictionary<string, Posture>(_all.Length, StringComparer.Ordinal);
             foreach (var p in _all)
             {
@@ -114,27 +122,55 @@ namespace Pentomino.Core
                 byShape[shape] = p;
             }
 
-            var rotated = new Cell[Pieces.CellsPerPiece];
             foreach (var p in _all)
             {
-                p.RotatedCcw = Lookup(byShape, p, RotateCcw(p.Cells, rotated), "反時計回り 90 度");
-                p.RotatedCw = Lookup(byShape, p, RotateCw(p.Cells, rotated), "時計回り 90 度");
-                p.FlippedHorizontally = Lookup(byShape, p, FlipHorizontally(p.Cells, rotated), "左右反転");
-                p.FlippedVertically = Lookup(byShape, p, FlipVertically(p.Cells, rotated), "上下反転");
+                p.RotatedCcw = Lookup(byShape, p, Transform(p.Cells, RotateCcw), "反時計回り 90 度");
+                p.RotatedCw = Lookup(byShape, p, Transform(p.Cells, RotateCw), "時計回り 90 度");
+
+                p.RolledLeft = Roll(byShape, p, RollLeft, HalfTurnHorizontal, "左へ転がす", out var half);
+                p.HalfTurnLeft = half;
+                p.RolledRight = Roll(byShape, p, RollRight, HalfTurnHorizontal, "右へ転がす", out half);
+                p.HalfTurnRight = half;
+                p.RolledUp = Roll(byShape, p, RollUp, HalfTurnVertical, "上へ転がす", out half);
+                p.HalfTurnUp = half;
+                p.RolledDown = Roll(byShape, p, RollDown, HalfTurnVertical, "下へ転がす", out half);
+                p.HalfTurnDown = half;
+            }
+        }
+
+        /// <summary>
+        /// フリックで転がした先の姿勢。90 度で段数に収まらなければ 180 度にする。
+        /// どちらも収まらなければ null（halfTurn は true）。
+        ///
+        /// 収まるのに Posture_DB.json に無い形は、データの欠けなので例外にする。
+        /// </summary>
+        private static Posture Roll(Dictionary<string, Posture> byShape, Posture source,
+            Func<Cell, Cell> quarter, Func<Cell, Cell> half, string operation, out bool halfTurn)
+        {
+            var turned = Transform(source.Cells, quarter);
+            if (Fits(turned))
+            {
+                halfTurn = false;
+                return Lookup(byShape, source, turned, operation);
             }
 
-            // 反転先が同じ回転群に属していればアキラル。
-            foreach (var p in _all)
+            halfTurn = true;
+            turned = Transform(source.Cells, half);
+            if (Fits(turned)) return Lookup(byShape, source, turned, operation + "（180 度）");
+            return null;
+        }
+
+        /// <summary>BOX の段数に収まるか。行と列は BOX の広さに比べて十分小さい。</summary>
+        private static bool Fits(Cell[] cells)
+        {
+            var min = int.MaxValue;
+            var max = int.MinValue;
+            foreach (var c in cells)
             {
-                var isAchiral = false;
-                var q = p;
-                for (var i = 0; i < 4; i++)
-                {
-                    if (ReferenceEquals(q, p.FlippedHorizontally)) { isAchiral = true; break; }
-                    q = q.RotatedCcw;
-                }
-                p.IsAchiral = isAchiral;
+                if (c.Layer < min) min = c.Layer;
+                if (c.Layer > max) max = c.Layer;
             }
+            return max - min + 1 <= Board.Layers;
         }
 
         private static Posture Lookup(Dictionary<string, Posture> byShape, Posture source, Cell[] cells, string operation)
@@ -147,45 +183,45 @@ namespace Pentomino.Core
             return found;
         }
 
-        // 行が下向き、列が右向きの座標系での反時計回り 90 度: (r, c) -> (-c, r)
-        private static Cell[] RotateCcw(IReadOnlyList<Cell> cells, Cell[] buffer)
-        {
-            for (var i = 0; i < cells.Count; i++) buffer[i] = new Cell(-cells[i].Col, cells[i].Row);
-            return Normalize(buffer);
-        }
+        // 座標系は 行 = 画面の下向き、列 = 右向き、段 = 画面の手前向き（右の格子が上の段）。
+        //
+        // 画面の面内の回転は行と列だけを動かす。
+        // 反時計回り 90 度: (r, c) -> (-c, r)
+        private static Cell RotateCcw(Cell c) => new Cell(-c.Col, c.Row, c.Layer);
 
         // 時計回り 90 度: (r, c) -> (c, -r)
-        private static Cell[] RotateCw(IReadOnlyList<Cell> cells, Cell[] buffer)
+        private static Cell RotateCw(Cell c) => new Cell(c.Col, -c.Row, c.Layer);
+
+        // 横のフリックは画面の縦軸まわり（列と段）。右へ転がすと、上の段が右へ、右端が下の段へ行く。
+        private static Cell RollRight(Cell c) => new Cell(c.Row, c.Layer, -c.Col);
+
+        private static Cell RollLeft(Cell c) => new Cell(c.Row, -c.Layer, c.Col);
+
+        // 縦のフリックは画面の横軸まわり（行と段）。上へ転がすと、上の段が上へ、上端が下の段へ行く。
+        private static Cell RollUp(Cell c) => new Cell(-c.Layer, c.Col, c.Row);
+
+        private static Cell RollDown(Cell c) => new Cell(c.Layer, c.Col, -c.Row);
+
+        // 180 度は向きによらず同じ。縦軸まわりなら列と段、横軸まわりなら行と段が裏返る。
+        private static Cell HalfTurnHorizontal(Cell c) => new Cell(c.Row, -c.Col, -c.Layer);
+
+        private static Cell HalfTurnVertical(Cell c) => new Cell(-c.Row, c.Col, -c.Layer);
+
+        private static Cell[] Transform(IReadOnlyList<Cell> cells, Func<Cell, Cell> map)
         {
-            for (var i = 0; i < cells.Count; i++) buffer[i] = new Cell(cells[i].Col, -cells[i].Row);
-            return Normalize(buffer);
+            var result = new Cell[cells.Count];
+            for (var i = 0; i < cells.Count; i++) result[i] = map(cells[i]);
+            return Normalize(result);
         }
 
-        // 左右反転: (r, c) -> (r, -c)
-        private static Cell[] FlipHorizontally(IReadOnlyList<Cell> cells, Cell[] buffer)
-        {
-            for (var i = 0; i < cells.Count; i++) buffer[i] = new Cell(cells[i].Row, -cells[i].Col);
-            return Normalize(buffer);
-        }
-
-        // 上下反転: (r, c) -> (-r, c)
-        private static Cell[] FlipVertically(IReadOnlyList<Cell> cells, Cell[] buffer)
-        {
-            for (var i = 0; i < cells.Count; i++) buffer[i] = new Cell(-cells[i].Row, cells[i].Col);
-            return Normalize(buffer);
-        }
-
-        /// <summary>原点を「最左列の最上セル」に移して正規化する。</summary>
+        /// <summary>原点を「解を探す順で最初のセル」に移して正規化する。</summary>
         private static Cell[] Normalize(Cell[] cells)
         {
-            var minCol = int.MaxValue;
-            foreach (var c in cells) if (c.Col < minCol) minCol = c.Col;
-
-            var baseRow = int.MaxValue;
-            foreach (var c in cells) if (c.Col == minCol && c.Row < baseRow) baseRow = c.Row;
+            var origin = cells[0];
+            foreach (var c in cells) if (ScanOrder(c, origin) < 0) origin = c;
 
             for (var i = 0; i < cells.Length; i++)
-                cells[i] = new Cell(cells[i].Row - baseRow, cells[i].Col - minCol);
+                cells[i] = new Cell(cells[i].Row - origin.Row, cells[i].Col - origin.Col, cells[i].Layer - origin.Layer);
             return cells;
         }
 
@@ -194,14 +230,10 @@ namespace Pentomino.Core
         {
             var sorted = new Cell[cells.Count];
             for (var i = 0; i < cells.Count; i++) sorted[i] = cells[i];
-            Array.Sort(sorted, (a, b) =>
-            {
-                var c = a.Col.CompareTo(b.Col);
-                return c != 0 ? c : a.Row.CompareTo(b.Row);
-            });
+            Array.Sort(sorted, ScanOrder);
 
-            var sb = new StringBuilder(cells.Count * 6);
-            foreach (var c in sorted) sb.Append(c.Row).Append(':').Append(c.Col).Append(';');
+            var sb = new StringBuilder(cells.Count * 8);
+            foreach (var c in sorted) sb.Append(c.Row).Append(':').Append(c.Col).Append(':').Append(c.Layer).Append(';');
             return sb.ToString();
         }
     }

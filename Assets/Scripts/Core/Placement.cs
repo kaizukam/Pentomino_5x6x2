@@ -6,7 +6,8 @@ namespace Pentomino.Core
 {
     /// <summary>
     /// 姿勢と原点座標の組。Answer 文字列の 7 文字 1 ブロックに対応する。
-    /// 文字列書式: 姿勢キー(3) + 行(1) + 列(2) + Z(1)。例 "U000000" = U00 を (行0, 列0) に配置。
+    /// 文字列書式: 姿勢キー(3) + 列(1) + 行(2) + 段(1)。例 "X003031" = X00 を (列3, 行3, 段1) に配置。
+    /// 座標の並びは Posture_DB.json の [d0, d1, d2] と同じ（Cell の説明を参照）。
     /// </summary>
     public readonly struct Placement : IEquatable<Placement>
     {
@@ -21,14 +22,18 @@ namespace Pentomino.Core
         /// <summary>原点セルの行 0..5。</summary>
         public readonly int Row;
 
-        /// <summary>原点セルの列 0..9。</summary>
+        /// <summary>原点セルの列 0..4。</summary>
         public readonly int Col;
 
-        public Placement(Posture posture, int row, int col)
+        /// <summary>原点セルの段 0..1。</summary>
+        public readonly int Layer;
+
+        public Placement(Posture posture, int row, int col, int layer)
         {
             Posture = posture ?? throw new ArgumentNullException(nameof(posture));
             Row = row;
             Col = col;
+            Layer = layer;
         }
 
         public char Piece => Posture.Piece;
@@ -36,17 +41,17 @@ namespace Pentomino.Core
         public bool IsValid => Posture != null;
 
         /// <summary>この配置が占めるセルを列挙する。</summary>
-        public IEnumerable<Cell> Cells() => Posture.CellsAt(Row, Col);
+        public IEnumerable<Cell> Cells() => Posture.CellsAt(Row, Col, Layer);
 
         /// <summary>7 文字のトークンに符号化する。</summary>
         public string Encode()
         {
             var sb = new StringBuilder(TokenLength);
             sb.Append(Posture.Key);
-            sb.Append((char)('0' + Row));
-            sb.Append((char)('0' + Col / 10));
-            sb.Append((char)('0' + Col % 10));
-            sb.Append('0'); // Z 座標。立体版で使用する。
+            sb.Append((char)('0' + Col));
+            sb.Append((char)('0' + Row / 10));
+            sb.Append((char)('0' + Row % 10));
+            sb.Append((char)('0' + Layer));
             return sb.ToString();
         }
 
@@ -63,13 +68,12 @@ namespace Pentomino.Core
             var coordinates = token.Substring(offset + 3, 4);
             if (coordinates == OffBoardCoordinates) return false;
 
-            if (!TryDigit(coordinates[0], out var row)) return false;
-            if (!TryDigit(coordinates[1], out var colTens)) return false;
-            if (!TryDigit(coordinates[2], out var colOnes)) return false;
-            if (!TryDigit(coordinates[3], out var z)) return false;
-            if (z != 0) return false;
+            if (!TryDigit(coordinates[0], out var col)) return false;
+            if (!TryDigit(coordinates[1], out var rowTens)) return false;
+            if (!TryDigit(coordinates[2], out var rowOnes)) return false;
+            if (!TryDigit(coordinates[3], out var layer)) return false;
 
-            placement = new Placement(posture, row, colTens * 10 + colOnes);
+            placement = new Placement(posture, rowTens * 10 + rowOnes, col, layer);
             return true;
         }
 
@@ -87,14 +91,14 @@ namespace Pentomino.Core
         }
 
         public bool Equals(Placement other) =>
-            ReferenceEquals(Posture, other.Posture) && Row == other.Row && Col == other.Col;
+            ReferenceEquals(Posture, other.Posture) && Row == other.Row && Col == other.Col && Layer == other.Layer;
 
         public override bool Equals(object obj) => obj is Placement other && Equals(other);
 
         public override int GetHashCode()
         {
             var hash = Posture == null ? 0 : Posture.Key.GetHashCode();
-            return (hash * 397 ^ Row) * 397 ^ Col;
+            return ((hash * 397 ^ Row) * 397 ^ Col) * 397 ^ Layer;
         }
 
         public override string ToString() => IsValid ? Encode() : "(未設定)";

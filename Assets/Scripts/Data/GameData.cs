@@ -11,7 +11,7 @@ namespace Pentomino.Data
     public static class GameData
     {
         public const string PostureDatabasePath = "Data/Posture_DB";
-        public const string PuzzleLibraryPath = "Data/Hint_pattern_6X10";
+        public const string PuzzleLibraryPath = "Data/Hint_pattern_5x6x2";
 
         private static PostureDatabase _postures;
         private static PuzzleLibrary _puzzles;

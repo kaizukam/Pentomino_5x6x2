@@ -58,7 +58,7 @@ namespace Pentomino.Tests
         public void 問題の総数と表が差し込まれる()
         {
             var body = GameData.LoadManual(Language.Japanese);
-            StringAssert.Contains("2339", body);
+            StringAssert.Contains("264", body);
             StringAssert.Contains("L1", body);
             StringAssert.Contains("L10", body);
         }

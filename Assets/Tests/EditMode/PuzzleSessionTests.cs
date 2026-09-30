@@ -31,7 +31,7 @@ namespace Pentomino.Tests
         [Test]
         public void 出題直後は固定ピースが盤上で残りが待機場所()
         {
-            var session = NewSession(500);
+            var session = NewSession(150);
             var puzzle = session.Puzzle;
 
             Assert.AreEqual(puzzle.PrearrangedCount * Pieces.CellsPerPiece, session.Board.FilledCount);
@@ -132,28 +132,24 @@ namespace Pentomino.Tests
         }
 
         [Test]
-        public void Hintで埋まる空白は右下から列ごとに左へ戻る()
+        public void Hintで埋まる空白は探索順を下から遡る()
         {
             var puzzle = FindByLevel(_library, 5);
             var session = new PuzzleSession(puzzle, _db, Difficulty.Classic);
 
-            // 画面では左上が原点。Answer は列優先で、それを末尾から遡るので、
-            // 埋まる位置は列が単調に減り、同じ列の中では行が減る。
-            var previousRow = int.MaxValue;
-            var previousCol = int.MaxValue;
+            // Answer は探索順（上の行から、左の格子、右の格子）で、それを末尾から遡るので、
+            // 埋まるピースの原点は探索順で単調に前へ戻る。下の行から上の行へ、
+            // 同じ行なら右の格子から左の格子へ。
+            var previous = int.MaxValue;
 
             while (!session.IsSolved)
             {
                 Assert.IsTrue(session.TryFindNextHint(out var next));
                 Assert.IsTrue(session.Hint());
 
-                if (next.Col == previousCol)
-                    Assert.Less(next.Row, previousRow, "同じ列では上へ戻る");
-                else
-                    Assert.Less(next.Col, previousCol, "列は左へ戻る");
-
-                previousRow = next.Row;
-                previousCol = next.Col;
+                var index = Board.LinearIndex(next.Row, next.Col, next.Layer);
+                Assert.Less(index, previous, "探索順で前へ戻る");
+                previous = index;
             }
         }
 
@@ -169,9 +165,9 @@ namespace Pentomino.Tests
         }
 
         [Test]
-        public void 待機場所のピースは回転と反転ができる()
+        public void 待機場所のピースは回転と転がしができる()
         {
-            var session = NewSession(2339, Difficulty.Classic);
+            var session = NewSession(264, Difficulty.Classic);
             var piece = session.Tray[0].Piece;
             var original = session.Tray[0].Posture;
 
@@ -181,16 +177,16 @@ namespace Pentomino.Tests
             for (var i = 0; i < 3; i++) session.RotateCcw(piece);
             Assert.AreSame(original, session.Tray[0].Posture, "4 回転で元に戻る");
 
-            var flipped = session.FlipHorizontally(piece);
-            Assert.AreSame(original.FlippedHorizontally, flipped);
-            session.FlipHorizontally(piece);
-            Assert.AreSame(original, session.Tray[0].Posture, "2 回反転で元に戻る");
+            var rolled = session.Roll(piece, FlickAxis.Right);
+            Assert.AreSame(original.Rolled(FlickAxis.Right), rolled);
+            session.Roll(piece, original.IsHalfTurn(FlickAxis.Right) ? FlickAxis.Right : FlickAxis.Left);
+            Assert.AreSame(original, session.Tray[0].Posture, "転がして戻せば元の姿勢");
         }
 
         [Test]
         public void 盤上のピースは回転できない()
         {
-            var session = NewSession(2339);
+            var session = NewSession(264);
             var fixedPiece = new List<Placement>(session.Puzzle.Prearranged)[0].Piece;
             Assert.IsNull(session.RotateCcw(fixedPiece));
         }
@@ -198,11 +194,11 @@ namespace Pentomino.Tests
         [Test]
         public void 正しい位置に置くと待機場所から消える()
         {
-            var session = NewSession(1000);
+            var session = NewSession(200);
             var target = new List<Placement>(session.Puzzle.Hidden)[0];
 
             var trayBefore = session.Tray.Count;
-            Assert.IsTrue(session.TryPlace(target.Piece, target.Row, target.Col));
+            Assert.IsTrue(session.TryPlace(target.Piece, target.Row, target.Col, target.Layer));
             Assert.AreEqual(trayBefore - 1, session.Tray.Count);
             Assert.IsTrue(session.Board.IsPlaced(target.Piece));
         }
@@ -210,10 +206,10 @@ namespace Pentomino.Tests
         [Test]
         public void 拾い上げると待機場所に戻る()
         {
-            var session = NewSession(1000);
+            var session = NewSession(200);
             var target = new List<Placement>(session.Puzzle.Hidden)[0];
 
-            session.TryPlace(target.Piece, target.Row, target.Col);
+            session.TryPlace(target.Piece, target.Row, target.Col, target.Layer);
             Assert.IsTrue(session.TryPickUp(target.Piece));
             Assert.IsFalse(session.Board.IsPlaced(target.Piece));
             Assert.IsTrue(session.TryGetTrayPiece(target.Piece, out _));
@@ -225,11 +221,11 @@ namespace Pentomino.Tests
         [Test]
         public void 正しい配置ならCheckのペナルティはゼロ()
         {
-            var session = NewSession(1000);
+            var session = NewSession(200);
             foreach (var placement in session.Puzzle.Hidden)
             {
                 if (session.Tray.Count == 1) break;   // 最後の 1 個を残す
-                Assert.IsTrue(session.TryPlace(placement.Piece, placement.Row, placement.Col));
+                Assert.IsTrue(session.TryPlace(placement.Piece, placement.Row, placement.Col, placement.Layer));
             }
 
             Assert.AreEqual(0, session.Check());
@@ -306,7 +302,7 @@ namespace Pentomino.Tests
             var session = new PuzzleSession(puzzle, _db, Difficulty.Guided);
 
             foreach (var placement in puzzle.Hidden)
-                Assert.IsTrue(session.TryPlace(placement.Piece, placement.Row, placement.Col));
+                Assert.IsTrue(session.TryPlace(placement.Piece, placement.Row, placement.Col, placement.Layer));
 
             Assert.IsTrue(session.IsSolved);
             Assert.AreEqual(0, session.Check());
@@ -343,7 +339,8 @@ namespace Pentomino.Tests
         [Test]
         public void 盤外のピースは9999で記録される()
         {
-            var puzzle = FindByLevel(_library, 4);
+            // 級ごとの問題数は表しだい（今は L4 が無い）なので、L5 で確かめる。
+            var puzzle = FindByLevel(_library, 5);
             var session = new PuzzleSession(puzzle, _db, Difficulty.Classic);
 
             var encoded = session.EncodeProgress();
@@ -357,28 +354,62 @@ namespace Pentomino.Tests
         [Test]
         public void 壊れた進捗は復元しない()
         {
-            var session = NewSession(1000);
+            var session = NewSession(200);
             Assert.IsFalse(session.TryRestoreProgress(""));
             Assert.IsFalse(session.TryRestoreProgress("XXXX"));
             Assert.IsFalse(session.TryRestoreProgress(new string('Z', session.Puzzle.Level * Placement.TokenLength)));
         }
 
-        /// <summary>姿勢を合わせてから置く。</summary>
+        /// <summary>
+        /// 姿勢を合わせてから置く。タップ（面内の回転）とフリック（転がし）だけで、
+        /// 待機場所の姿勢から解の姿勢まで最短の手順を探して当てはめる。
+        /// </summary>
         private static bool PlaceExact(PuzzleSession session, Placement placement)
         {
             if (!session.TryGetTrayPiece(placement.Piece, out var trayPiece)) return false;
 
-            for (var flip = 0; flip < 2; flip++)
+            var steps = PathTo(trayPiece.Posture, placement.Posture);
+            if (steps == null) return false;
+
+            foreach (var step in steps)
             {
-                for (var turn = 0; turn < 4; turn++)
-                {
-                    if (ReferenceEquals(trayPiece.Posture, placement.Posture))
-                        return session.TryPlace(placement.Piece, placement.Row, placement.Col);
-                    session.RotateCcw(placement.Piece);
-                }
-                session.FlipHorizontally(placement.Piece);
+                if (step == FlickAxis.None) session.RotateCcw(placement.Piece);
+                else session.Roll(placement.Piece, step);
             }
-            return false;
+
+            if (!ReferenceEquals(trayPiece.Posture, placement.Posture)) return false;
+            return session.TryPlace(placement.Piece, placement.Row, placement.Col, placement.Layer);
+        }
+
+        /// <summary>姿勢 from から to への操作の並び。None はタップ。届かなければ null。</summary>
+        private static List<FlickAxis> PathTo(Posture from, Posture to)
+        {
+            var moves = new[] { FlickAxis.None, FlickAxis.Left, FlickAxis.Right, FlickAxis.Up, FlickAxis.Down };
+            var previous = new Dictionary<Posture, KeyValuePair<Posture, FlickAxis>>();
+            var queue = new Queue<Posture>();
+            previous[from] = default;
+            queue.Enqueue(from);
+
+            while (queue.Count > 0)
+            {
+                var p = queue.Dequeue();
+                if (ReferenceEquals(p, to)) break;
+
+                foreach (var move in moves)
+                {
+                    var q = move == FlickAxis.None ? p.RotatedCcw : p.Rolled(move);
+                    if (q == null || previous.ContainsKey(q)) continue;
+                    previous[q] = new KeyValuePair<Posture, FlickAxis>(p, move);
+                    queue.Enqueue(q);
+                }
+            }
+
+            if (!previous.ContainsKey(to)) return null;
+
+            var path = new List<FlickAxis>();
+            for (var p = to; !ReferenceEquals(p, from); p = previous[p].Key) path.Add(previous[p].Value);
+            path.Reverse();
+            return path;
         }
 
         private static bool TryPlaceSomewhereWrong(PuzzleSession session, char piece)
@@ -387,14 +418,13 @@ namespace Pentomino.Tests
             session.TryGetTrayPiece(piece, out var trayPiece);
             var posture = trayPiece.Posture;
 
-            for (var row = 0; row < Board.Rows; row++)
+            for (var i = 0; i < Board.CellCount; i++)
             {
-                for (var col = 0; col < Board.Cols; col++)
-                {
-                    if (posture == solution.Posture && row == solution.Row && col == solution.Col) continue;
-                    if (!session.CanPlace(piece, posture, row, col)) continue;
-                    return session.TryPlace(piece, row, col);
-                }
+                var cell = Board.CellAt(i);
+                if (posture == solution.Posture && cell.Row == solution.Row && cell.Col == solution.Col
+                    && cell.Layer == solution.Layer) continue;
+                if (!session.CanPlace(piece, posture, cell.Row, cell.Col, cell.Layer)) continue;
+                return session.TryPlace(piece, cell.Row, cell.Col, cell.Layer);
             }
             return false;
         }

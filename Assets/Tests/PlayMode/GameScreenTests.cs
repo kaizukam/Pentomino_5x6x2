@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
 using Pentomino.Core;
@@ -197,22 +198,18 @@ namespace Pentomino.Tests
         public IEnumerator 盤上に置いたピースがセルにぴったり合う()
         {
             var session = _screen.Session;
+
+            // 立てて置くピースがあればそれを選ぶ。左右の格子にまたがっても合うことを確かめたい。
             var target = default(Placement);
             foreach (var placement in session.Puzzle.Hidden)
             {
-                target = placement;
-                break;
+                if (!target.IsValid || placement.Posture.IsStanding) target = placement;
+                if (placement.Posture.IsStanding) break;
             }
 
             // 待機場所の姿勢を解と揃えてから置く。
-            for (var i = 0; i < 8 && session.TryGetTrayPiece(target.Piece, out var tray); i++)
-            {
-                if (ReferenceEquals(tray.Posture, target.Posture)) break;
-                if (i == 3) session.FlipHorizontally(target.Piece);
-                else session.RotateCcw(target.Piece);
-            }
-
-            Assert.IsTrue(session.TryPlace(target.Piece, target.Row, target.Col), "解の位置に置けること");
+            Assert.IsTrue(TurnTo(session, target.Posture), "解の姿勢に回せること");
+            Assert.IsTrue(session.TryPlace(target.Piece, target.Row, target.Col, target.Layer), "解の位置に置けること");
             _screen.Refresh();
             yield return null;
 
@@ -227,11 +224,52 @@ namespace Pentomino.Tests
             Assert.IsNotNull(placed, "置いたピースの表示が見つからない");
             Assert.IsTrue(placed.IsOnBoard);
 
-            // ピースの原点セルの角が、盤のセルの角と一致していること。
-            var expected = Board.CellCornerWorld(target.Row, target.Col);
-            var actual = placed.View.Graphic.transform.TransformPoint(placed.View.Graphic.CellCorner(0, 0));
-            Assert.AreEqual(expected.x, actual.x, 0.5f, "X がずれている");
-            Assert.AreEqual(expected.y, actual.y, 0.5f, "Y がずれている");
+            // ピースのどのセルの角も、盤の同じセルの角と一致していること。
+            // 立てたピースなら、右の格子にかかる部分も盤の右の格子に合う。
+            var graphic = placed.View.Graphic;
+            foreach (var cell in target.Posture.Cells)
+            {
+                var onBoard = new Cell(target.Row + cell.Row, target.Col + cell.Col, target.Layer + cell.Layer);
+                var expected = Board.CellCornerWorld(onBoard);
+                var actual = graphic.transform.TransformPoint(graphic.CellCorner(cell));
+                Assert.AreEqual(expected.x, actual.x, 0.5f, "X がずれている " + onBoard);
+                Assert.AreEqual(expected.y, actual.y, 0.5f, "Y がずれている " + onBoard);
+            }
+        }
+
+        /// <summary>タップとフリックだけで、待機場所のピースを姿勢 to に回す。</summary>
+        private static bool TurnTo(PuzzleSession session, Posture to)
+        {
+            if (!session.TryGetTrayPiece(to.Piece, out var tray)) return false;
+
+            var moves = new[] { FlickAxis.None, FlickAxis.Left, FlickAxis.Right, FlickAxis.Up, FlickAxis.Down };
+            var previous = new Dictionary<Posture, KeyValuePair<Posture, FlickAxis>>();
+            var queue = new Queue<Posture>();
+            previous[tray.Posture] = default;
+            queue.Enqueue(tray.Posture);
+            while (queue.Count > 0)
+            {
+                var p = queue.Dequeue();
+                foreach (var move in moves)
+                {
+                    var q = move == FlickAxis.None ? p.RotatedCcw : p.Rolled(move);
+                    if (q == null || previous.ContainsKey(q)) continue;
+                    previous[q] = new KeyValuePair<Posture, FlickAxis>(p, move);
+                    queue.Enqueue(q);
+                }
+            }
+            if (!previous.ContainsKey(to)) return false;
+
+            var path = new List<FlickAxis>();
+            for (var p = to; !ReferenceEquals(p, tray.Posture); p = previous[p].Key) path.Add(previous[p].Value);
+            path.Reverse();
+
+            foreach (var move in path)
+            {
+                if (move == FlickAxis.None) session.RotateCcw(to.Piece);
+                else session.Roll(to.Piece, move);
+            }
+            return ReferenceEquals(tray.Posture, to);
         }
 
         [UnityTest]
@@ -239,18 +277,15 @@ namespace Pentomino.Tests
         {
             yield return null;
 
-            for (var row = 0; row < Core.Board.Rows; row++)
+            for (var i = 0; i < Core.Board.CellCount; i++)
             {
-                for (var col = 0; col < Core.Board.Cols; col++)
-                {
-                    // CellSize は基準（1080 幅）での長さなので、ワールド座標に足してはいけない。
-                    // カンバスの縮尺がかかっているぶん、セル何個分もずれてしまう。
-                    var center = Board.CellCenterWorld(row, col);
+                // CellSize は基準（1080 幅）での長さなので、ワールド座標に足してはいけない。
+                // カンバスの縮尺がかかっているぶん、セル何個分もずれてしまう。
+                var cell = Core.Board.CellAt(i);
+                var center = Board.CellCenterWorld(cell);
 
-                    Assert.IsTrue(Board.TryWorldToCell(center, out var r, out var c), row + "," + col);
-                    Assert.AreEqual(row, r, "row " + row + "," + col);
-                    Assert.AreEqual(col, c, "col " + row + "," + col);
-                }
+                Assert.IsTrue(Board.TryWorldToCell(center, out var found), cell.ToString());
+                Assert.AreEqual(cell, found);
             }
         }
 
@@ -258,9 +293,23 @@ namespace Pentomino.Tests
         public void 盤の外は範囲外として扱われる()
         {
             // 隣のセルとの差でワールド座標での 1 セル分を測り、盤の外へ 1 つずらす。
-            var step = Board.CellCornerWorld(1, 1) - Board.CellCornerWorld(0, 0);
-            var outside = Board.CellCornerWorld(0, 0) - step;
-            Assert.IsFalse(Board.TryWorldToCell(outside, out _, out _));
+            var step = Board.CellCornerWorld(new Cell(1, 1, 0)) - Board.CellCornerWorld(new Cell(0, 0, 0));
+            var outside = Board.CellCornerWorld(new Cell(0, 0, 0)) - step;
+            Assert.IsFalse(Board.TryWorldToCell(outside, out _));
+        }
+
+        [Test]
+        public void 左右の格子の間の隙間は盤の外()
+        {
+            // 左の格子の右端と、右の格子の左端のちょうど中ほど。
+            var leftEdge = Board.CellCornerWorld(new Cell(2, Core.Board.Cols - 1, 0))
+                           + (Board.CellCornerWorld(new Cell(2, 1, 0)) - Board.CellCornerWorld(new Cell(2, 0, 0)));
+            var rightEdge = Board.CellCornerWorld(new Cell(2, 0, 1));
+            Assert.Greater(rightEdge.x, leftEdge.x, "右の格子は左の格子より右にある");
+
+            var gap = (leftEdge + rightEdge) * 0.5f;
+            gap.y += (Board.CellCornerWorld(new Cell(3, 0, 0)) - Board.CellCornerWorld(new Cell(2, 0, 0))).y * 0.5f;   // 行の中ほどへ
+            Assert.IsFalse(Board.TryWorldToCell(gap, out var cell), "隙間なのに " + cell + " とみなされた");
         }
     }
 }

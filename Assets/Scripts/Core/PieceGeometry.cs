@@ -4,8 +4,9 @@ using System.Collections.Generic;
 namespace Pentomino.Core
 {
     /// <summary>
-    /// 格子上の直線 1 本。始点は格子の交点 (Row, Col) で、
+    /// 格子上の直線 1 本。始点は段 Layer の格子の交点 (Row, Col) で、
     /// Horizontal なら列方向へ、そうでなければ行方向へ Length セル分伸びる。
+    /// 段が違えば別の格子（画面では左右に並ぶ）なので、線は段をまたがない。
     /// </summary>
     public readonly struct GridLine : IEquatable<GridLine>
     {
@@ -13,33 +14,40 @@ namespace Pentomino.Core
         public readonly int Col;
         public readonly int Length;
         public readonly bool Horizontal;
+        public readonly int Layer;
 
-        public GridLine(int row, int col, int length, bool horizontal)
+        public GridLine(int row, int col, int length, bool horizontal, int layer = 0)
         {
             Row = row;
             Col = col;
             Length = length;
             Horizontal = horizontal;
+            Layer = layer;
         }
 
         public int EndRow => Horizontal ? Row : Row + Length;
         public int EndCol => Horizontal ? Col + Length : Col;
 
         public bool Equals(GridLine other) =>
-            Row == other.Row && Col == other.Col && Length == other.Length && Horizontal == other.Horizontal;
+            Row == other.Row && Col == other.Col && Length == other.Length && Horizontal == other.Horizontal
+            && Layer == other.Layer;
 
         public override bool Equals(object obj) => obj is GridLine other && Equals(other);
 
-        public override int GetHashCode() => (((Row * 397) ^ Col) * 397 ^ Length) * 397 ^ (Horizontal ? 1 : 0);
+        public override int GetHashCode() =>
+            ((((Row * 397) ^ Col) * 397 ^ Length) * 397 ^ (Horizontal ? 1 : 0)) * 397 ^ Layer;
 
         public override string ToString() =>
-            (Horizontal ? "H" : "V") + "(" + Row + "," + Col + ")x" + Length;
+            (Horizontal ? "H" : "V") + "(" + Row + "," + Col + "," + Layer + ")x" + Length;
     }
 
     /// <summary>
     /// セル集合から描画用の線を組み立てる。
     /// 外周は太線 (L1)、内部の格子は細線 (L2) として描く（開発仕様「ピースの描画」）。
     /// 同じ向きに連続する線はまとめて 1 本にするので、角が二重に描かれない。
+    ///
+    /// 段の違うセルは接していないものとして扱う。立てて置くピースは、
+    /// 左右の格子にそれぞれ外周のある 2 つの形として描かれる。
     /// </summary>
     public static class PieceGeometry
     {
@@ -70,22 +78,23 @@ namespace Pentomino.Core
             {
                 var r = cell.Row;
                 var c = cell.Col;
+                var z = cell.Layer;
 
                 // 上辺。共有していれば内部の線とし、下側のセルが 1 度だけ登録する。
-                var above = new Cell(r - 1, c);
-                if (set.Contains(above)) innerUnits.Add(new GridLine(r, c, 1, true));
-                else outerUnits.Add(new GridLine(r, c, 1, true));
+                var above = new Cell(r - 1, c, z);
+                if (set.Contains(above)) innerUnits.Add(new GridLine(r, c, 1, true, z));
+                else outerUnits.Add(new GridLine(r, c, 1, true, z));
 
                 // 下辺は外周のときだけ。内部なら下のセルが上辺として登録する。
-                if (!set.Contains(new Cell(r + 1, c))) outerUnits.Add(new GridLine(r + 1, c, 1, true));
+                if (!set.Contains(new Cell(r + 1, c, z))) outerUnits.Add(new GridLine(r + 1, c, 1, true, z));
 
                 // 左辺。共有していれば内部の線とし、右側のセルが 1 度だけ登録する。
-                var left = new Cell(r, c - 1);
-                if (set.Contains(left)) innerUnits.Add(new GridLine(r, c, 1, false));
-                else outerUnits.Add(new GridLine(r, c, 1, false));
+                var left = new Cell(r, c - 1, z);
+                if (set.Contains(left)) innerUnits.Add(new GridLine(r, c, 1, false, z));
+                else outerUnits.Add(new GridLine(r, c, 1, false, z));
 
                 // 右辺は外周のときだけ。
-                if (!set.Contains(new Cell(r, c + 1))) outerUnits.Add(new GridLine(r, c + 1, 1, false));
+                if (!set.Contains(new Cell(r, c + 1, z))) outerUnits.Add(new GridLine(r, c + 1, 1, false, z));
             }
 
             Merge(outerUnits, outer);
@@ -107,6 +116,7 @@ namespace Pentomino.Core
                 {
                     var next = units[index + length];
                     if (next.Horizontal != head.Horizontal) break;
+                    if (next.Layer != head.Layer) break;
                     if (head.Horizontal)
                     {
                         if (next.Row != head.Row || next.Col != head.Col + length) break;
@@ -118,15 +128,18 @@ namespace Pentomino.Core
                     length++;
                 }
 
-                result.Add(new GridLine(head.Row, head.Col, length, head.Horizontal));
+                result.Add(new GridLine(head.Row, head.Col, length, head.Horizontal, head.Layer));
                 index += length;
             }
         }
 
         private static int CompareForMerge(GridLine a, GridLine b)
         {
-            // 横線は行ごとに列順、縦線は列ごとに行順に並べる。
+            // 段ごとに、横線は行ごとに列順、縦線は列ごとに行順に並べる。
             if (a.Horizontal != b.Horizontal) return a.Horizontal ? -1 : 1;
+
+            var byLayer = a.Layer.CompareTo(b.Layer);
+            if (byLayer != 0) return byLayer;
 
             if (a.Horizontal)
             {
@@ -138,12 +151,13 @@ namespace Pentomino.Core
             return byCol != 0 ? byCol : a.Row.CompareTo(b.Row);
         }
 
-        /// <summary>6X10 の BOX 全体のセルを列挙する。</summary>
+        /// <summary>5x6x2 の BOX 全体のセルを列挙する。</summary>
         public static IEnumerable<Cell> BoardCells()
         {
-            for (var r = 0; r < Board.Rows; r++)
-                for (var c = 0; c < Board.Cols; c++)
-                    yield return new Cell(r, c);
+            for (var z = 0; z < Board.Layers; z++)
+                for (var r = 0; r < Board.Rows; r++)
+                    for (var c = 0; c < Board.Cols; c++)
+                        yield return new Cell(r, c, z);
         }
     }
 }

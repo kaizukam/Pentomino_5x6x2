@@ -45,23 +45,35 @@ namespace Pentomino.View
             RectTransform.sizeDelta = _grid.Graphic.PreferredSize;
         }
 
-        /// <summary>セル (row, col) の左上角のワールド座標。</summary>
-        public Vector3 CellCornerWorld(int row, int col) =>
-            _grid.Graphic.transform.TransformPoint(_grid.Graphic.CellCorner(row, col));
+        /// <summary>セルの左上角のワールド座標。</summary>
+        public Vector3 CellCornerWorld(Cell cell) =>
+            _grid.Graphic.transform.TransformPoint(_grid.Graphic.CellCorner(cell));
 
         /// <summary>セルの中心のワールド座標。</summary>
-        public Vector3 CellCenterWorld(int row, int col) =>
-            _grid.Graphic.transform.TransformPoint(_grid.Graphic.CellCenter(row, col));
+        public Vector3 CellCenterWorld(Cell cell) =>
+            _grid.Graphic.transform.TransformPoint(_grid.Graphic.CellCenter(cell));
 
-        /// <summary>ワールド座標がどのセルの上にあるかを返す。盤外なら false。</summary>
-        public bool TryWorldToCell(Vector3 world, out int row, out int col)
+        /// <summary>
+        /// ワールド座標がどのセルの上にあるかを返す。盤外なら false。
+        /// 左右の格子の間の隙間も盤外。
+        /// </summary>
+        public bool TryWorldToCell(Vector3 world, out Cell cell)
         {
             var local = _grid.Graphic.transform.InverseTransformPoint(world);
-            var origin = _grid.Graphic.CellCorner(0, 0);
 
-            col = Mathf.FloorToInt((local.x - origin.x) / _style.cellSize);
-            row = Mathf.FloorToInt((origin.y - local.y) / _style.cellSize);
-            return Board.InRange(row, col);
+            for (var layer = 0; layer < Board.Layers; layer++)
+            {
+                var origin = _grid.Graphic.CellCorner(new Cell(0, 0, layer));
+                var col = Mathf.FloorToInt((local.x - origin.x) / _style.cellSize);
+                var row = Mathf.FloorToInt((origin.y - local.y) / _style.cellSize);
+                if (!Board.InRange(row, col, layer)) continue;
+
+                cell = new Cell(row, col, layer);
+                return true;
+            }
+
+            cell = default;
+            return false;
         }
     }
 }

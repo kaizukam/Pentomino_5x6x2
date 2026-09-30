@@ -44,7 +44,7 @@ namespace Pentomino.View
             }
         }
 
-        /// <summary>6X10 の BOX を描く。文字は入れない。</summary>
+        /// <summary>5x6x2 の BOX（左右 2 つの格子）を描く。文字は入れない。</summary>
         public void RenderBoard(PentominoStyle style)
         {
             Render(new List<Cell>(PieceGeometry.BoardCells()), style.boardFillColor, '\0', style);
@@ -81,7 +81,7 @@ namespace Pentomino.View
                 var rect = (RectTransform)text.transform;
                 rect.sizeDelta = new Vector2(style.cellSize, style.cellSize);
                 // アンカーは左上なので、左上角からの相対位置に直す。
-                rect.anchoredPosition = graphic.CellCenter(cells[i].Row, cells[i].Col) - topLeft;
+                rect.anchoredPosition = graphic.CellCenter(cells[i]) - topLeft;
             }
         }
 

@@ -2,16 +2,36 @@ using System;
 
 namespace Pentomino.Core
 {
-    /// <summary>反転の向き。</summary>
+    /// <summary>
+    /// フリックの向き。指を滑らせた向きで、ピースはその向きへ転がる。
+    ///
+    /// 6X10 では横なら左右反転、縦なら上下反転で、向きの左右・上下は問わなかった。
+    /// 5x6x2 では 90 度の回転なので、どちらへ転がすかで結果が違う。
+    /// </summary>
     public enum FlickAxis
     {
         None,
 
-        /// <summary>横向きの動き。左右反転。</summary>
-        Horizontal,
+        /// <summary>左へ。画面の縦軸まわりに、左へ転がる。</summary>
+        Left,
 
-        /// <summary>縦向きの動き。上下反転。</summary>
-        Vertical,
+        /// <summary>右へ。画面の縦軸まわりに、右へ転がる。</summary>
+        Right,
+
+        /// <summary>上へ。画面の横軸まわりに、上へ転がる。</summary>
+        Up,
+
+        /// <summary>下へ。画面の横軸まわりに、下へ転がる。</summary>
+        Down,
+    }
+
+    public static class FlickAxes
+    {
+        /// <summary>横向きのフリックか（左または右）。</summary>
+        public static bool IsHorizontal(this FlickAxis axis) => axis == FlickAxis.Left || axis == FlickAxis.Right;
+
+        /// <summary>縦向きのフリックか（上または下）。</summary>
+        public static bool IsVertical(this FlickAxis axis) => axis == FlickAxis.Up || axis == FlickAxis.Down;
     }
 
     /// <summary>
@@ -213,7 +233,7 @@ namespace Pentomino.Core
             (float)Math.Sqrt(averageX * averageX + averageY * averageY);
 
         /// <summary>
-        /// 離したときの速度から、反転の向きを決める。
+        /// 離したときの速度から、転がす向きを決める。
         /// </summary>
         /// <param name="averageX">ならした速度の横成分（mm/秒）</param>
         /// <param name="averageY">ならした速度の縦成分（mm/秒）</param>
@@ -240,7 +260,9 @@ namespace Pentomino.Core
             var minor = Math.Min(x, y);
             if (minor > 0f && major < minor * settings.AxisRatio) return FlickAxis.None;
 
-            return x >= y ? FlickAxis.Horizontal : FlickAxis.Vertical;
+            // 速度は画面の座標（上が正）で届く。
+            if (x >= y) return averageX >= 0f ? FlickAxis.Right : FlickAxis.Left;
+            return averageY >= 0f ? FlickAxis.Up : FlickAxis.Down;
         }
 
         /// <summary>判定に落ちた理由。感度調整の画面に出す。</summary>
@@ -266,7 +288,10 @@ namespace Pentomino.Core
             if (minor > 0f && major < minor * settings.AxisRatio)
                 return "斜め " + Round(major) + ":" + Round(minor);
 
-            return (x >= y ? "左右反転 " : "上下反転 ") + Round(speed) + "mm/s";
+            string direction;
+            if (x >= y) direction = averageX >= 0f ? "右へ " : "左へ ";
+            else direction = averageY >= 0f ? "上へ " : "下へ ";
+            return direction + Round(speed) + "mm/s";
         }
 
         private static int Round(float value) => (int)Math.Round(value);

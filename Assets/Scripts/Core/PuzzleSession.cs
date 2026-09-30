@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Pentomino.Core
 {
-    /// <summary>待機場所にあるピース 1 つ。姿勢は回転・反転で変化する。</summary>
+    /// <summary>待機場所にあるピース 1 つ。姿勢は回転で変化する。</summary>
     public sealed class TrayPiece
     {
         internal TrayPiece(Posture posture)
@@ -23,7 +23,7 @@ namespace Pentomino.Core
     /// 1 問分の進行状態。盤面、待機場所、Check / Hint のカウンタを持つ。
     ///
     /// 問題データは 1 問につき解が 1 通りである前提で、Check と Hint は
-    /// Hint_pattern_6X10.csv に記録された解との一致で判定する。
+    /// Hint_pattern_5x6x2.csv に記録された解との一致で判定する。
     /// 画面上の「宙に浮いたピース」はビュー側の関心事なので、ここでは
     /// 盤上（固定 / プレイヤー配置）と待機場所の 3 状態だけを扱う。
     /// </summary>
@@ -120,13 +120,13 @@ namespace Pentomino.Core
             return false;
         }
 
-        /// <summary>待機場所のピースを、現在の姿勢のまま盤上の (row, col) に置く。</summary>
-        public bool TryPlace(char piece, int row, int col)
+        /// <summary>待機場所のピースを、現在の姿勢のまま盤上の (row, col, layer) に置く。</summary>
+        public bool TryPlace(char piece, int row, int col, int layer)
         {
             if (IsSolved) return false;
             if (!TryGetTrayPiece(piece, out var trayPiece)) return false;
 
-            var placement = new Placement(trayPiece.Posture, row, col);
+            var placement = new Placement(trayPiece.Posture, row, col, layer);
             if (!_board.TryPlace(placement)) return false;
 
             _tray.Remove(trayPiece);
@@ -134,11 +134,11 @@ namespace Pentomino.Core
         }
 
         /// <summary>その姿勢・座標に置けるか（スナップ判定に使う）。</summary>
-        public bool CanPlace(char piece, Posture posture, int row, int col)
+        public bool CanPlace(char piece, Posture posture, int row, int col, int layer)
         {
             if (IsSolved || posture == null || posture.Piece != piece) return false;
             if (IsFixed(piece)) return false;
-            return _board.CanPlace(new Placement(posture, row, col));
+            return _board.CanPlace(new Placement(posture, row, col, layer));
         }
 
         /// <summary>盤上のピースを待機場所に戻す。固定ピースは戻せない。</summary>
@@ -159,18 +159,22 @@ namespace Pentomino.Core
         /// <summary>待機場所のピースを時計回りに 90 度回す。</summary>
         public Posture RotateCw(char piece) => Transform(piece, p => p.RotatedCw);
 
-        /// <summary>待機場所のピースを左右反転する（横向きのフリック）。</summary>
-        public Posture FlipHorizontally(char piece) => Transform(piece, p => p.FlippedHorizontally);
-
-        /// <summary>待機場所のピースを上下反転する（縦向きのフリック）。</summary>
-        public Posture FlipVertically(char piece) => Transform(piece, p => p.FlippedVertically);
+        /// <summary>
+        /// 待機場所のピースをフリックの向きへ転がす（90 度、収まらなければ 180 度）。
+        /// 転がせなければ姿勢はそのままで、null を返す。
+        /// </summary>
+        public Posture Roll(char piece, FlickAxis direction) => Transform(piece, p => p.Rolled(direction));
 
         private Posture Transform(char piece, Func<Posture, Posture> transform)
         {
             if (IsSolved) return null;
             if (!TryGetTrayPiece(piece, out var trayPiece)) return null;
-            trayPiece.Posture = transform(trayPiece.Posture);
-            return trayPiece.Posture;
+
+            var next = transform(trayPiece.Posture);
+            if (next == null) return null;
+
+            trayPiece.Posture = next;
+            return next;
         }
 
         /// <summary>
@@ -190,9 +194,8 @@ namespace Pentomino.Core
         /// Hint ボタン。まず Check を行い（ペナルティは Hint カウンタへ）、
         /// 続いて空いているマスをひとつ埋めて Hint カウンタを 1 減算する。
         ///
-        /// 埋める場所は Answer を先頭から走査して最初に見つかる未収納ピース。
-        /// Answer は列優先で、画面では左上のマスが先頭にあたるので、
-        /// 左上から下へ、その列が埋まったら右の列へ、という順に空白が埋まっていく。
+        /// 埋める場所は Answer を末尾から遡って最初に見つかる未収納ピース
+        /// （TryFindNextHint を参照）。
         /// 待機場所の並び順（級によって解答順だったりアルファベット順だったりする）には
         /// 左右されない。
         /// </summary>

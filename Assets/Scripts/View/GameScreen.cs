@@ -112,8 +112,7 @@ namespace Pentomino.View
         private PieceWidget _dragging;
         private Vector3 _grabOffset;
         private bool _snapped;
-        private int _snapRow;
-        private int _snapCol;
+        private Cell _snapCell;
         private bool _refreshRequested;
 
         /// <summary>表示に使う幅。左右の余白を除いた、中身が入る幅。</summary>
@@ -289,8 +288,11 @@ namespace Pentomino.View
 
             var contentWidth = _contentWidth;
 
-            // BOX が横幅いっぱいになるようセルサイズを決める。L1 のはみ出し分も勘定に入れる。
-            _style.cellSize = contentWidth / (Board.Cols + _style.outerLineRatio);
+            // BOX（左右 2 つの格子）が横幅いっぱいになるようセルサイズを決める。
+            // 格子ごとの L1 のはみ出し分と、格子の間の隙間も勘定に入れる。
+            _style.cellSize = contentWidth
+                / (Board.Cols * Board.Layers + _style.outerLineRatio * Board.Layers
+                   + _style.layerGapRatio * (Board.Layers - 1));
 
             BuildHeader(contentWidth);
 
@@ -794,7 +796,7 @@ namespace Pentomino.View
                 var view = PolyominoView.Create(_board.PiecesLayer, "Fixed_" + placement.Piece);
                 view.RenderPiece(placement.Posture, _style);
                 view.Graphic.raycastTarget = false;
-                PlaceViewOnBoard(view.Graphic, placement.Row, placement.Col);
+                PlaceViewOnBoard(view.Graphic, OriginOf(placement));
                 _fixedViews.Add(view);
             }
 
@@ -811,7 +813,7 @@ namespace Pentomino.View
                 widget.IsOnBoard = onBoard;
                 _widgets[piece] = widget;
 
-                if (onBoard) PlaceViewOnBoard(widget.View.Graphic, current.Row, current.Col);
+                if (onBoard) PlaceViewOnBoard(widget.View.Graphic, OriginOf(current));
             }
 
             LayoutTray();
@@ -824,13 +826,17 @@ namespace Pentomino.View
                 ? trayPiece.Posture
                 : GameData.Postures.DefaultPosture(piece);
 
-        private void PlaceViewOnBoard(PolyominoGraphic graphic, int row, int col)
+        private static Cell OriginOf(Placement placement) =>
+            new Cell(placement.Row, placement.Col, placement.Layer);
+
+        private void PlaceViewOnBoard(PolyominoGraphic graphic, Cell origin)
         {
             graphic.transform.SetParent(_board.PiecesLayer, false);
 
-            // 原点セル (posture の (0,0)) の左上角を、盤の (row, col) の左上角に合わせる。
-            var target = _board.CellCornerWorld(row, col);
-            var current = graphic.transform.TransformPoint(graphic.CellCorner(0, 0));
+            // 原点セル (posture の (0,0,0)) の左上角を、盤の origin の左上角に合わせる。
+            // 段のずれは描画側が盤と同じ間隔で持っているので、原点を合わせれば全体が合う。
+            var target = _board.CellCornerWorld(origin);
+            var current = graphic.transform.TransformPoint(graphic.CellCorner(new Cell(0, 0, 0)));
             graphic.transform.position += target - current;
         }
 
@@ -1210,24 +1216,22 @@ namespace Pentomino.View
             KeepInPlayArea(widget);
 
             var wasSnapped = _snapped;
-            var wasRow = _snapRow;
-            var wasCol = _snapCol;
+            var wasCell = _snapCell;
             _snapped = false;
 
-            if (_board.TryWorldToCell(widget.OriginCellCenterWorld, out var row, out var col) &&
-                _session.CanPlace(widget.Piece, widget.Posture, row, col))
+            if (_board.TryWorldToCell(widget.OriginCellCenterWorld, out var cell) &&
+                _session.CanPlace(widget.Piece, widget.Posture, cell.Row, cell.Col, cell.Layer))
             {
                 var free = widget.OriginCellCornerWorld;
-                var target = _board.CellCornerWorld(row, col);
+                var target = _board.CellCornerWorld(cell);
                 var distance = CanvasDistance(free, target);
 
                 // 直前と同じ場所に吸い付いていたかどうかで、しきい値を切り替える。
-                var stillSame = wasSnapped && row == _snapRow && col == _snapCol;
+                var stillSame = wasSnapped && cell == _snapCell;
                 if (SnapRule.ShouldSnap(stillSame, distance, _snapAttractDistance, _snapReleaseDistance))
                 {
                     _snapped = true;
-                    _snapRow = row;
-                    _snapCol = col;
+                    _snapCell = cell;
                     widget.MoveOriginCornerTo(target);
                 }
             }
@@ -1236,7 +1240,7 @@ namespace Pentomino.View
 
             // 吸い付いた瞬間だけ知らせる。吸い付いている間ずっと鳴らすと、
             // 境目で指が揺れるたびに鳴り続ける。別の枠へ移ったときは鳴らす。
-            if (_snapped && (!wasSnapped || wasRow != _snapRow || wasCol != _snapCol))
+            if (_snapped && (!wasSnapped || wasCell != _snapCell))
                 if (_feedback != null) _feedback.Snapped();
         }
 
@@ -1256,7 +1260,7 @@ namespace Pentomino.View
             // 離したので黒に戻す。
             widget.SetOutline(false, false, _style);
 
-            if (_snapped && _session.TryPlace(widget.Piece, _snapRow, _snapCol))
+            if (_snapped && _session.TryPlace(widget.Piece, _snapCell.Row, _snapCell.Col, _snapCell.Layer))
             {
                 widget.IsOnBoard = true;
                 _snapped = false;
@@ -1283,24 +1287,29 @@ namespace Pentomino.View
         }
 
         /// <summary>
-        /// 掴んだまま素早く滑らせた。横向きなら左右反転、縦向きなら上下反転。
+        /// 掴んだまま素早く滑らせた。その向きへ 90 度転がす。
+        /// 横なら画面の縦軸まわり、縦なら画面の横軸まわり。
         ///
-        /// 平面のペントミノではどちらも 180 度の反転だが、
-        /// 立体版では左右が 90 度回転、上下が起こす向きの 90 度になる。
-        /// 向きの判定は FlickRule が済ませてあるので、ここは当てはめるだけ。
+        /// 90 度では BOX の高さ（2 段）に収まらないときは 180 度回し、
+        /// 外周を 2 回赤く点滅させて知らせる。どちらでも収まらなければ回さずに点滅だけ。
+        /// 向きの判定は FlickRule、転がした先の姿勢は PostureDatabase が済ませてあるので、
+        /// ここは当てはめるだけ。
         /// </summary>
         public void OnPieceFlick(PieceWidget widget, FlickAxis axis)
         {
             if (_session == null || _session.IsSolved) return;
             if (widget.IsOnBoard) return;
 
-            var posture = axis == FlickAxis.Horizontal
-                ? _session.FlipHorizontally(widget.Piece)
-                : _session.FlipVertically(widget.Piece);
-            if (posture == null) return;
+            var warn = widget.Posture != null && widget.Posture.IsHalfTurn(axis);
+            var posture = _session.Roll(widget.Piece, axis);
 
-            widget.SetPosture(posture, _style);
-            if (widget != _floating) LayoutTray();
+            if (posture != null)
+            {
+                widget.SetPosture(posture, _style);
+                if (widget != _floating) LayoutTray();
+            }
+
+            if (warn) widget.BlinkWarning(_style);
         }
 
         /// <summary>フリックの判定に使うしきい値。設定画面から変えられる。</summary>

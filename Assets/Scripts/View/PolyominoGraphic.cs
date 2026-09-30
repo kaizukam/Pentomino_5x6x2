@@ -10,6 +10,9 @@ namespace Pentomino.View
     /// セル集合を 1 枚のメッシュとして描く uGUI グラフィック。
     /// 地 → L2 細線 → L1 太線 の順に重ねるので、線の交点がきれいに繋がる。
     /// BOX もピースも同じ仕組みで描ける。
+    ///
+    /// 段（Layer）の違うセルは、段の数だけ右へ <see cref="PentominoStyle.LayerStride"/> ずらして描く。
+    /// 盤の左右の格子も、立てたピースの左右の部分も、この決まりで並ぶ。
     /// </summary>
     [AddComponentMenu("Pentomino/Polyomino Graphic")]
     public sealed class PolyominoGraphic : MaskableGraphic, ICanvasRaycastFilter
@@ -25,8 +28,9 @@ namespace Pentomino.View
 
         private int _minRow;
         private int _minCol;
+        private int _minLayer;
         private int _rows = 1;
-        private int _cols = 1;
+        private float _width = 1f;
 
         public PentominoStyle Style
         {
@@ -54,9 +58,12 @@ namespace Pentomino.View
         /// <summary>外接矩形の左上セルの列。</summary>
         public int MinCol => _minCol;
 
+        /// <summary>いちばん左に描く段。</summary>
+        public int MinLayer => _minLayer;
+
         /// <summary>セルを内側に収めるのに必要な大きさ。L1 のはみ出し分を含む。</summary>
         public Vector2 PreferredSize =>
-            new Vector2(_cols * _style.cellSize, _rows * _style.cellSize) + Vector2.one * _style.OuterLineWidth;
+            new Vector2(_width, _rows * _style.cellSize) + Vector2.one * _style.OuterLineWidth;
 
         /// <summary>描くセルを差し替える。</summary>
         public void SetCells(IEnumerable<Cell> cells, Color fillColor)
@@ -99,23 +106,26 @@ namespace Pentomino.View
             }
         }
 
-        /// <summary>セル (row, col) の左上角のローカル座標。</summary>
-        public Vector2 CellCorner(int row, int col)
+        /// <summary>セルの左上角のローカル座標。</summary>
+        public Vector2 CellCorner(Cell cell)
         {
             var half = _style.OuterLineWidth * 0.5f;
             var topLeft = TopLeft;
             return new Vector2(
-                topLeft.x + half + (col - _minCol) * _style.cellSize,
-                topLeft.y - half - (row - _minRow) * _style.cellSize);
+                topLeft.x + half + LayerOffset(cell.Layer) + (cell.Col - _minCol) * _style.cellSize,
+                topLeft.y - half - (cell.Row - _minRow) * _style.cellSize);
         }
 
-        /// <summary>セル (row, col) の中心のローカル座標。文字の配置に使う。</summary>
-        public Vector2 CellCenter(int row, int col)
+        /// <summary>セルの中心のローカル座標。文字の配置に使う。</summary>
+        public Vector2 CellCenter(Cell cell)
         {
-            var corner = CellCorner(row, col);
+            var corner = CellCorner(cell);
             var half = _style.cellSize * 0.5f;
             return new Vector2(corner.x + half, corner.y - half);
         }
+
+        /// <summary>段 layer の格子を、いちばん左の段からどれだけ右へずらすか。</summary>
+        private float LayerOffset(int layer) => (layer - _minLayer) * _style.LayerStride;
 
         protected override void OnPopulateMesh(VertexHelper helper)
         {
@@ -136,7 +146,7 @@ namespace Pentomino.View
             // 地
             foreach (var c in _cells)
             {
-                var x = left + (c.Col - _minCol) * cell;
+                var x = left + LayerOffset(c.Layer) + (c.Col - _minCol) * cell;
                 var y = top - (c.Row - _minRow) * cell;
                 AddQuad(helper, x, y - cell, x + cell, y, fill);
             }
@@ -163,12 +173,13 @@ namespace Pentomino.View
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     rectTransform, screenPoint, eventCamera, out var local)) return false;
 
-            var origin = CellCorner(0, 0);
-            var col = Mathf.FloorToInt((local.x - origin.x) / _style.cellSize);
-            var row = Mathf.FloorToInt((origin.y - local.y) / _style.cellSize);
-
-            var target = new Cell(row, col);
-            foreach (var c in _cells) if (c == target) return true;
+            var size = _style.cellSize;
+            foreach (var c in _cells)
+            {
+                var corner = CellCorner(c);
+                if (local.x >= corner.x && local.x < corner.x + size &&
+                    local.y <= corner.y && local.y > corner.y - size) return true;
+            }
             return false;
         }
 
@@ -192,25 +203,33 @@ namespace Pentomino.View
             {
                 _outer.Clear();
                 _inner.Clear();
-                _minRow = _minCol = 0;
-                _rows = _cols = 1;
+                _minRow = _minCol = _minLayer = 0;
+                _rows = 1;
+                _width = _style.cellSize;
                 SetVerticesDirty();
                 return;
             }
 
             _minRow = int.MaxValue;
             _minCol = int.MaxValue;
+            _minLayer = int.MaxValue;
             var maxRow = int.MinValue;
-            var maxCol = int.MinValue;
             foreach (var c in _cells)
             {
                 if (c.Row < _minRow) _minRow = c.Row;
                 if (c.Row > maxRow) maxRow = c.Row;
                 if (c.Col < _minCol) _minCol = c.Col;
-                if (c.Col > maxCol) maxCol = c.Col;
+                if (c.Layer < _minLayer) _minLayer = c.Layer;
             }
             _rows = maxRow - _minRow + 1;
-            _cols = maxCol - _minCol + 1;
+
+            // 幅は右端のセルの右辺まで。段がずれるので列の数だけでは決まらない。
+            _width = 0f;
+            foreach (var c in _cells)
+            {
+                var right = LayerOffset(c.Layer) + (c.Col - _minCol + 1) * _style.cellSize;
+                if (right > _width) _width = right;
+            }
 
             PieceGeometry.Build(_cells, _outer, _inner);
             SetVerticesDirty();
@@ -220,6 +239,7 @@ namespace Pentomino.View
             float width, float extend, Color lineColor)
         {
             var half = width * 0.5f;
+            left += LayerOffset(line.Layer);
             if (line.Horizontal)
             {
                 var y = top - (line.Row - _minRow) * cell;

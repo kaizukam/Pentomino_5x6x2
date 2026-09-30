@@ -87,9 +87,11 @@ namespace Pentomino.Core
             }
 
             if (values.Count < 2) throw Error(i, "座標は少なくとも 2 要素必要です");
-            // values[2] は立体版用の Z 座標。6X10 の平面版では常に 0 なので読み捨てる。
-            if (values.Count >= 3 && values[2] != 0) throw Error(i, "平面 6X10 では Z 座標は 0 である必要があります");
-            return new Cell(values[0], values[1]);
+            if (values.Count > 3) throw Error(i, "座標は 3 要素までです");
+
+            // [d0, d1, d2] = [列, 行, 段]。Cell の説明を参照。
+            var layer = values.Count >= 3 ? values[2] : 0;
+            return new Cell(values[1], values[0], layer);
         }
 
         private static int ReadInt(string s, ref int i)
@@ -116,6 +118,10 @@ namespace Pentomino.Core
             return value;
         }
 
+        /// <summary>
+        /// 空白を読み飛ばす。char.IsWhiteSpace はノーブレークスペース（U+00A0）も空白とみなす。
+        /// 支給の Posture_DB.json には字下げにこれが混じっているので、そのまま読める。
+        /// </summary>
         private static void SkipWhitespace(string s, ref int i)
         {
             while (i < s.Length && char.IsWhiteSpace(s[i])) i++;

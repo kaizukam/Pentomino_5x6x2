@@ -55,7 +55,7 @@ namespace Pentomino.Tests
         {
             var now = Slide(500f, 20);
 
-            Assert.AreEqual(FlickAxis.Horizontal, _detector.Release(now, _settings));
+            Assert.AreEqual(FlickAxis.Right, _detector.Release(now, _settings));
             Assert.IsFalse(_detector.IsTracking);
         }
 
@@ -110,7 +110,7 @@ namespace Pentomino.Tests
             _detector.Release(now, _settings);
 
             Assert.Greater(_detector.LastSpeedMmPerSecond, 100f, "表示する値まで消えています");
-            StringAssert.Contains("左右反転", _detector.LastReason(_settings));
+            StringAssert.Contains("右へ", _detector.LastReason(_settings));
         }
 
         [Test]
@@ -142,7 +142,7 @@ namespace Pentomino.Tests
         }
 
         [Test]
-        public void 縦に滑らせて離すと上下反転()
+        public void 上に滑らせて離すと上へ転がす()
         {
             var step = 1f / 60f;
             var now = 0f;
@@ -156,7 +156,7 @@ namespace Pentomino.Tests
                 _detector.Feed(0f, y, now);
             }
 
-            Assert.AreEqual(FlickAxis.Vertical, _detector.Release(now, _settings));
+            Assert.AreEqual(FlickAxis.Up, _detector.Release(now, _settings));
         }
 
         [Test]

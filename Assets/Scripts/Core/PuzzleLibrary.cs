@@ -4,7 +4,10 @@ using System.Globalization;
 
 namespace Pentomino.Core
 {
-    /// <summary>Hint_pattern_6X10.csv を読み込んだ 2,339 問の一覧。難易度の軽い順に並んでいる。</summary>
+    /// <summary>
+    /// Hint_pattern_5x6x2.csv を読み込んだ問題の一覧（264 問）。
+    /// 級ごとの問題数は表を入れ替えると変わるので、決め打ちせず CountsByLevel で数える。
+    /// </summary>
     public sealed class PuzzleLibrary
     {
         private readonly Puzzle[] _puzzles;
@@ -73,7 +76,7 @@ namespace Pentomino.Core
             if (csv == null) throw new ArgumentNullException(nameof(csv));
             if (database == null) throw new ArgumentNullException(nameof(database));
 
-            var puzzles = new List<Puzzle>(2339);
+            var puzzles = new List<Puzzle>(264);
             var lines = csv.Split('\n');
             var headerChecked = false;
 
@@ -86,7 +89,7 @@ namespace Pentomino.Core
                     throw new FormatException("列が足りません (" + (lineNumber + 1) + " 行目): " + line);
 
                 // ヘッダ行は 1 列目が番号として読めないことで見分ける。
-                // 見出しは "ID" だったり "Group number" だったりするので、名前では判定しない。
+                // 見出しは "ID" だったり "Group number" だったり "Group" だったりするので、名前では判定しない。
                 if (!headerChecked)
                 {
                     headerChecked = true;
@@ -133,14 +136,14 @@ namespace Pentomino.Core
             return new Puzzle(number, lvl, solution);
         }
 
-        /// <summary>問題番号を読む。"#0001" と "1" のどちらの書き方にも対応する。</summary>
+        /// <summary>問題番号を読む。"$0001"（5x6x2）、"#0001"（6X10）、"1" のどの書き方にも対応する。</summary>
         private static bool TryParseNumber(string field, out int number)
         {
             number = 0;
             if (field == null) return false;
 
             field = field.Trim('\uFEFF', ' ', '\t', '\r');
-            if (field.Length > 0 && field[0] == '#') field = field.Substring(1);
+            if (field.Length > 0 && (field[0] == '$' || field[0] == '#')) field = field.Substring(1);
             if (field.Length == 0) return false;
 
             return int.TryParse(field, NumberStyles.Integer, CultureInfo.InvariantCulture, out number);

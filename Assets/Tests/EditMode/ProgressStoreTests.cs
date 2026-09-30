@@ -174,7 +174,7 @@ namespace Pentomino.Tests
 
             var session = new PuzzleSession(puzzle, database, Difficulty.Guided);
             var first = new List<Placement>(puzzle.Hidden)[0];
-            Assert.IsTrue(session.TryPlace(first.Piece, first.Row, first.Col));
+            Assert.IsTrue(session.TryPlace(first.Piece, first.Row, first.Col, first.Layer));
             session.Check();
 
             var progress = _store.Load();

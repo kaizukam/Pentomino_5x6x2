@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace Pentomino.Core
 {
     /// <summary>
-    /// Hint_pattern_6X10.csv の 1 行。12 ピース分の解と、そのうち何個を隠すか（Lvl）を持つ。
-    /// Answer は列優先の探索順に並んでいるため、先頭から (12 - Lvl) 個が出題時に置かれている。
+    /// Hint_pattern_5x6x2.csv の 1 行。12 ピース分の解と、そのうち何個を隠すか（Lvl）を持つ。
+    /// Answer は探索順（Board を参照）に並んでいるため、先頭から (12 - Lvl) 個が出題時に置かれている。
     /// </summary>
     public sealed class Puzzle
     {
@@ -26,11 +26,11 @@ namespace Pentomino.Core
             for (var i = 0; i < solution.Count; i++) _solution[i] = solution[i];
         }
 
-        /// <summary>問題番号 1..2339。</summary>
+        /// <summary>問題番号 1..264。</summary>
         public int Number { get; }
 
-        /// <summary>"#0108" 形式の表示用 ID。</summary>
-        public string Id => "#" + Number.ToString("0000");
+        /// <summary>"$0108" 形式の表示用 ID。問題データの書き方に合わせる。</summary>
+        public string Id => "$" + Number.ToString("0000");
 
         /// <summary>難易度 Lvl。出題時に隠されているピース数と一致する。</summary>
         public int Level { get; }
@@ -38,7 +38,7 @@ namespace Pentomino.Core
         /// <summary>出題時に既に置かれているピース数。</summary>
         public int PrearrangedCount => Pieces.Count - Level;
 
-        /// <summary>12 ピースの解。Answer 文字列の並び順（列優先）。</summary>
+        /// <summary>12 ピースの解。Answer 文字列の並び順（探索順）。</summary>
         public IReadOnlyList<Placement> Solution => _solution;
 
         /// <summary>出題時に盤上に固定されているピース。動かせない。</summary>

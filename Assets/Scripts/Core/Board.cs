@@ -5,33 +5,46 @@ using System.Text;
 namespace Pentomino.Core
 {
     /// <summary>
-    /// 6 行 10 列の BOX 格子。行は上から下、列は左から右に増加する。
-    /// 探索順（Answer 文字列の並び順）は「列を上から下へ、次の列へ」の列優先。
+    /// 幅 5・高さ 6・2 段の BOX。行は上から下、列は左から右、段は左の格子（0）から右の格子（1）。
+    ///
+    /// 探索順（Answer 文字列の並び順）は、上の行から、左の格子の左から右、続けて右の格子の
+    /// 左から右、そして 1 行下へ。6X10 の列優先とは違い、未収納のピースは下のほうに残る。
     /// </summary>
     public sealed class Board
     {
         public const int Rows = 6;
-        public const int Cols = 10;
-        public const int CellCount = Rows * Cols;
+        public const int Cols = 5;
+        public const int Layers = 2;
+        public const int CellCount = Rows * Cols * Layers;
 
         /// <summary>空セルを表すピース名。</summary>
         public const char Empty = '\0';
 
-        private readonly char[] _cells = new char[CellCount];       // 列優先の一次元配列
+        private readonly char[] _cells = new char[CellCount];       // 探索順の一次元配列
         private readonly Placement[] _placements = new Placement[Pieces.Count];
         private int _filled;
 
-        /// <summary>列優先の線形索引。空きセル探索がそのまま Answer の並び順になる。</summary>
-        public static int LinearIndex(int row, int col) => col * Rows + row;
+        /// <summary>探索順の線形索引。空きセル探索がそのまま Answer の並び順になる。</summary>
+        public static int LinearIndex(int row, int col, int layer) => (row * Layers + layer) * Cols + col;
 
-        public static bool InRange(int row, int col) => row >= 0 && row < Rows && col >= 0 && col < Cols;
+        public static int LinearIndex(Cell cell) => LinearIndex(cell.Row, cell.Col, cell.Layer);
 
-        public char this[int row, int col]
+        /// <summary>線形索引からセルへ。</summary>
+        public static Cell CellAt(int index) =>
+            new Cell(index / (Cols * Layers), index % Cols, index / Cols % Layers);
+
+        public static bool InRange(int row, int col, int layer) =>
+            row >= 0 && row < Rows && col >= 0 && col < Cols && layer >= 0 && layer < Layers;
+
+        public static bool InRange(Cell cell) => InRange(cell.Row, cell.Col, cell.Layer);
+
+        public char this[int row, int col, int layer]
         {
             get
             {
-                if (!InRange(row, col)) throw new ArgumentOutOfRangeException(nameof(row), "盤外です: (" + row + "," + col + ")");
-                return _cells[LinearIndex(row, col)];
+                if (!InRange(row, col, layer))
+                    throw new ArgumentOutOfRangeException(nameof(row), "盤外です: " + new Cell(row, col, layer));
+                return _cells[LinearIndex(row, col, layer)];
             }
         }
 
@@ -39,7 +52,7 @@ namespace Pentomino.Core
 
         public bool IsFull => _filled == CellCount;
 
-        public bool IsEmptyAt(int row, int col) => this[row, col] == Empty;
+        public bool IsEmptyAt(int row, int col, int layer) => this[row, col, layer] == Empty;
 
         /// <summary>置かれているピース名を配置順ではなくアルファベット順で列挙する。</summary>
         public IEnumerable<char> PlacedPieces
@@ -67,8 +80,8 @@ namespace Pentomino.Core
 
             foreach (var cell in placement.Cells())
             {
-                if (!InRange(cell.Row, cell.Col)) return false;
-                if (_cells[LinearIndex(cell.Row, cell.Col)] != Empty) return false;
+                if (!InRange(cell)) return false;
+                if (_cells[LinearIndex(cell)] != Empty) return false;
             }
             return true;
         }
@@ -78,7 +91,7 @@ namespace Pentomino.Core
             if (!CanPlace(placement)) return false;
 
             foreach (var cell in placement.Cells())
-                _cells[LinearIndex(cell.Row, cell.Col)] = placement.Piece;
+                _cells[LinearIndex(cell)] = placement.Piece;
 
             _placements[Pieces.IndexOf(placement.Piece)] = placement;
             _filled += Pieces.CellsPerPiece;
@@ -98,7 +111,7 @@ namespace Pentomino.Core
             if (!placement.IsValid) return false;
 
             foreach (var cell in placement.Cells())
-                _cells[LinearIndex(cell.Row, cell.Col)] = Empty;
+                _cells[LinearIndex(cell)] = Empty;
 
             _placements[index] = default;
             _filled -= Pieces.CellsPerPiece;
@@ -112,18 +125,16 @@ namespace Pentomino.Core
             _filled = 0;
         }
 
-        /// <summary>列優先の探索順で最初の空きセルを返す。盤が埋まっていれば false。</summary>
-        public bool TryFindFirstEmpty(out int row, out int col)
+        /// <summary>探索順で最初の空きセルを返す。盤が埋まっていれば false。</summary>
+        public bool TryFindFirstEmpty(out Cell cell)
         {
             for (var i = 0; i < CellCount; i++)
             {
                 if (_cells[i] != Empty) continue;
-                row = i % Rows;
-                col = i / Rows;
+                cell = CellAt(i);
                 return true;
             }
-            row = -1;
-            col = -1;
+            cell = default;
             return false;
         }
 
@@ -136,7 +147,7 @@ namespace Pentomino.Core
             return copy;
         }
 
-        /// <summary>内部の列優先バッファをコピーして返す（ソルバ用）。</summary>
+        /// <summary>内部の探索順バッファをコピーして返す（ソルバ用）。</summary>
         internal char[] CopyCells()
         {
             var copy = new char[CellCount];
@@ -144,16 +155,23 @@ namespace Pentomino.Core
             return copy;
         }
 
-        /// <summary>1 行 1 文字列のテキスト表現。空セルは '.'。</summary>
+        /// <summary>
+        /// 1 行 1 文字列のテキスト表現。左の格子と右の格子を空白 1 つで区切って並べる。
+        /// 空セルは '.'。
+        /// </summary>
         public string ToText()
         {
-            var sb = new StringBuilder((Cols + 1) * Rows);
+            var sb = new StringBuilder((Cols * Layers + Layers) * Rows);
             for (var r = 0; r < Rows; r++)
             {
-                for (var c = 0; c < Cols; c++)
+                for (var z = 0; z < Layers; z++)
                 {
-                    var value = _cells[LinearIndex(r, c)];
-                    sb.Append(value == Empty ? '.' : value);
+                    if (z > 0) sb.Append(' ');
+                    for (var c = 0; c < Cols; c++)
+                    {
+                        var value = _cells[LinearIndex(r, c, z)];
+                        sb.Append(value == Empty ? '.' : value);
+                    }
                 }
                 if (r < Rows - 1) sb.Append('\n');
             }
