@@ -970,7 +970,13 @@ PlayerSettings:
   XboxOneXTitleMemory: 8
   XboxOneOverrideIdentityName: 
   XboxOneOverrideIdentityPublisher: 
-  cloudServicesEnabled: {}
+  cloudServicesEnabled:
+    Build: 0
+    Game Performance: 0
+    Legacy Analytics: 0
+    Purchasing: 0
+    UDP: 0
+    Unity Ads: 0
   luminIcon:
     m_Name: 
     m_ModelFolderPath: 
@@ -993,10 +999,10 @@ PlayerSettings:
   activeInputHandler: 1
   windowsGamepadBackendHint: 0
   enableDirectStorage: 0
-  cloudProjectId: d40f4ef7-730a-4779-a054-055aca3633b4
+  cloudProjectId: 99152530-8eb4-422d-8232-3614129fefb4
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: Pentomino_5x6x2
+  projectName: Pentomino5x6x2
   organizationId: unity_042aab81027ac28ca841
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
