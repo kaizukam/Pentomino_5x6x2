@@ -1,0 +1,22 @@
+{
+    "name": "Pentomino.Editor",
+    "rootNamespace": "Pentomino.EditorTools",
+    "references": [
+        "Pentomino.Core",
+        "Pentomino.Data",
+        "Pentomino.View",
+        "UnityEngine.UI",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,109 @@
+// ============================================================
+// 
+// Français (フランス語) - manual_fr.txt
+//
+// 下の本文は英語のままです。この言語に訳して差し替えてください。
+// The text below is still English. Please replace it with Français.
+//
+// 訳し終えたら、この 3 行目の TRANSLATE ME を消してください。
+// メニュー Pentomino ▸ 説明書の翻訳状況を調べる で残りを確認できます。
+//
+// 「//」で始まる行は表示されません。
+//
+// 差し込み記号（そのまま残してください）
+//   {TOTAL}        問題の総数 / total number of puzzles
+//   {TABLE}        レベルごとの問題番号と割合の表 / puzzle count per level
+//   The line right before {TABLE} becomes the table heading.
+//   Separate the three columns with "|" (left | middle | right).
+//   {GUIDED} {TURN} {CLASSIC}                難易度の名前 / mode names
+//   {GUIDED_NOTE} {TURN_NOTE} {CLASSIC_NOTE} 一行説明 / one-line notes
+// ============================================================
+
+■ Nombre de puzzles
+
+Les puzzles vont du niveau 1 (L1) au niveau 10 (L10).
+Il y a {TOTAL} puzzles au total.
+
+Niveau | N° de puzzle | Proportion
+{TABLE}
+
+■ Choisir un puzzle
+
+Utilisez les boutons Précédent (←) et Suivant (→).
+Un simple toucher déplace la sélection de +1 ou -1.
+Maintenez le bouton pendant 1 seconde pour avancer de ±10 toutes les 0,3 seconde.
+Après 3 secondes, la vitesse passe à ±100 toutes les 0,3 seconde.
+Le minimum est 1 et le maximum {TOTAL}.
+
+■ Manipuler les pièces
+
+Vous pouvez déplacer toutes les pièces non placées.
+Il existe trois commandes : toucher, faire glisser et balayer rapidement.
+
+Touchez une pièce non placée pour la faire pivoter.
+Chaque toucher la fait pivoter de 90 degrés dans le sens antihoraire.
+
+Faire glisser et balayer rapidement
+Posez le doigt sur une pièce pour la saisir.
+Tant que vous la tenez, son contour devient rouge. Il redevient noir quand vous la relâchez.
+
+Pour la faire glisser, déplacez le doigt sans la lâcher afin de la déplacer.
+Lorsque la pièce entre dans la grille et s'approche d'un emplacement compatible, elle s'y aimante et son contour devient bleu.
+Relâchez alors votre doigt pour la poser.
+Vous pouvez la poser partout où elle entre, même si ce n'est pas la bonne réponse.
+
+Pour effectuer un balayage rapide, donnez une impulsion à la pièce saisie tout en la relâchant.
+Normalement, elle sortirait de l'écran, mais ici elle se retourne à l'endroit où vous la relâchez.
+Balayez rapidement à l'horizontale pour la retourner de gauche à droite.
+Balayez rapidement à la verticale pour la retourner de haut en bas.
+La vitesse de déplacement au moment où vous relâchez le doigt détermine s'il s'agit d'un glissement ou d'un balayage rapide.
+Vous pouvez régler cette sensibilité dans les paramètres (icône d'engrenage).
+La valeur par défaut est de 70 mm/s.
+
+■ Utiliser Vérifier (Check)
+
+Chaque puzzle n'a qu'une seule solution.
+Le jeu sait donc immédiatement si les pièces posées sont correctes.
+En cas de doute, utilisez Vérifier pour en avoir le cœur net.
+Si tout est correct, aucun point n'est retiré.
+
+■ Utiliser un indice
+
+L'indice commence par vérifier le puzzle et retire toutes les pièces incorrectes.
+Il parcourt ensuite la solution depuis la fin et place la première pièce encore manquante.
+La pénalité correspond au nombre de pièces incorrectes, plus un indice.
+
+■ À propos des difficultés
+
+Pour résoudre un pentomino, placez les pièces dans l'ordre en partant du coin supérieur gauche.
+Remplissez ensuite la colonne, puis passez à celle de droite.
+
+・{GUIDED} — {GUIDED_NOTE}
+  Les pièces non placées sont rangées dans l'ordre et déjà orientées correctement.
+  Idéal pour les grands débutants ou comme premier puzzle d'un jeune enfant.
+
+・{TURN} — {TURN_NOTE}
+  L'ordre est le même qu'en mode {GUIDED}, mais l'orientation des pièces est réinitialisée.
+  Vous devez faire pivoter ou retourner les pièces avant de les poser.
+
+・{CLASSIC} — {CLASSIC_NOTE}
+  Les pièces suivent l'ordre alphabétique de leur nom et leurs orientations sont mélangées.
+  C'est la difficulté habituelle d'un pentomino.
+
+■ Réglages
+
+Ouvrez les réglages avec le bouton engrenage, à droite du bandeau supérieur.
+Un appui long sur le nom du puzzle les ouvre aussi.
+
+・Langue : huit au choix. Cette aide suit votre choix.
+・Aide : ouvre ce texte.
+・Son de fin : ce bouton le coupe.
+・L'emboîtement est signalé par vibration si l'appareil en est capable,
+  sinon par un son. C'est l'appareil qui décide ; jamais les deux.
+・Mode : changer n'efface rien. Chaque mode garde sa propre progression.
+  Pour l'effacer, utilisez le bouton à côté du mode ; seul ce mode est concerné.
+・Sensibilité du geste : déplace la limite entre glissement et balayage rapide,
+  ainsi que la durée et la force du signal.
+
+■ Références
+{Reference}

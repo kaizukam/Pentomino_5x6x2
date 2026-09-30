@@ -1,0 +1,104 @@
+// Manual text (English)
+//
+// Lines starting with "//" are not shown. Use them for notes.
+//
+// Placeholders (leave them as they are; the app fills them in)
+//   {TOTAL}        total number of puzzles (2339)
+//   {TABLE}        puzzle number range and share per level
+//   The line right before {TABLE} becomes the table heading.
+//   Separate the three columns with "|" (left | middle | right).
+//   {GUIDED}       mode name (Guided)
+//   {TURN}         mode name (Turn)
+//   {CLASSIC}      mode name (Classic)
+//   {GUIDED_NOTE}  one-line note for Guided
+//   {TURN_NOTE}    one-line note for Turn
+//   {CLASSIC_NOTE} one-line note for Classic
+
+■ Number of Puzzles
+
+Puzzles range from Level 1 (L1) to Level 10 (L10).
+There are {TOTAL} puzzles in total.
+
+Level | Puzzle No. | Percentage
+{TABLE}
+
+■ Selecting a Puzzle
+
+Use the Back (←) and Next (→) buttons.
+Tap once to move +1 or -1.
+Press and hold for 1 second to fast-forward by ±10 every 0.3 seconds.
+After 3 seconds, it speeds up to ±100 every 0.3 seconds.
+The minimum is 1, and the maximum is {TOTAL}.
+
+■ Moving Pieces
+
+You can move any unplaced piece.
+There are three controls: tap, swipe, and flick.
+
+Tap an unplaced piece to rotate it.
+Each tap rotates it 90 degrees counterclockwise.
+
+Swipe and flick
+Touch a piece to grab it.
+While you hold it, its outline turns red. It goes back to black when you let go.
+
+Swipe by moving your finger while holding the piece to move it.
+When the piece enters the grid and approaches a place where it fits, it snaps into position and its outline turns blue.
+Release your finger there to place it.
+You can place a piece anywhere it fits, even if it is not the correct answer.
+
+Flick by quickly swiping and releasing the piece while holding it.
+Normally, a flick would send it off the screen, but here the piece flips where you release it.
+Flick horizontally to flip it left to right.
+Flick vertically to flip it top to bottom.
+The speed of the piece when you release it determines whether the action is treated as a swipe or a flick.
+You can adjust this sensitivity in Settings (the gear icon).
+The default is 70 mm/s.
+
+■ Using Check
+
+Each puzzle has only one solution,
+so the game can immediately tell whether your placed pieces are correct.
+If you are unsure, use Check for peace of mind.
+If your pieces are correct, there is no penalty.
+
+■ Using Hint
+
+Hint first runs Check and removes all incorrectly placed pieces.
+It then works backwards from the last piece of the solution and places the first one still missing.
+The penalty equals the number of incorrect pieces plus one hint.
+
+■ About Difficulty Levels
+
+To solve a pentomino puzzle, place pieces in order from the top left.
+Fill the current column, then move to the right.
+
+・{GUIDED} — {GUIDED_NOTE}
+  Unplaced pieces are arranged in placement order and already face the correct way.
+  Ideal for complete beginners or as a young child's first puzzle.
+
+・{TURN} — {TURN_NOTE}
+  The order is the same as {GUIDED}, but each piece's orientation is reset.
+  You will need to rotate or flip pieces before placing them.
+
+・{CLASSIC} — {CLASSIC_NOTE}
+  Pieces are ordered alphabetically by name and have mixed orientations.
+  This is the standard pentomino difficulty.
+
+■ Settings
+
+Open Settings with the gear button at the right of the top band.
+A long press on the puzzle name opens it too.
+
+・Language: eight to choose from. This manual follows your choice.
+・Manual: opens this text.
+・Finish sound: this button turns it off.
+・The snap is signalled by vibration where the device can vibrate,
+  and by sound where it cannot. The device decides; never both.
+・Mode: switching erases nothing. Each mode keeps its own progress.
+  To clear one, use the button beside that mode; only that mode is affected.
+・Flick sensitivity: changes where a swipe ends and a flick begins,
+  and the length and strength of the snap signal.
+
+■ References
+{Reference}

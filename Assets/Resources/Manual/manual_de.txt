@@ -1,0 +1,109 @@
+// ============================================================
+// 
+// Deutsch (ドイツ語) - manual_de.txt
+//
+// 下の本文は英語のままです。この言語に訳して差し替えてください。
+// The text below is still English. Please replace it with Deutsch.
+//
+// 訳し終えたら、この 3 行目の TRANSLATE ME を消してください。
+// メニュー Pentomino ▸ 説明書の翻訳状況を調べる で残りを確認できます。
+//
+// 「//」で始まる行は表示されません。
+//
+// 差し込み記号（そのまま残してください）
+//   {TOTAL}        問題の総数 / total number of puzzles
+//   {TABLE}        レベルごとの問題番号と割合の表 / puzzle count per level
+//   The line right before {TABLE} becomes the table heading.
+//   Separate the three columns with "|" (left | middle | right).
+//   {GUIDED} {TURN} {CLASSIC}                難易度の名前 / mode names
+//   {GUIDED_NOTE} {TURN_NOTE} {CLASSIC_NOTE} 一行説明 / one-line notes
+// ============================================================
+
+■ Anzahl der Rätsel
+
+Die Rätsel reichen von Level 1 (L1) bis Level 10 (L10).
+Insgesamt gibt es {TOTAL} Rätsel.
+
+Level | Rätsel-Nr. | Anteil
+{TABLE}
+
+■ Rätsel auswählen
+
+Benutze die Tasten „Zurück“ (←) und „Weiter“ (→).
+Einmal tippen bewegt die Auswahl um +1 oder -1.
+Halte die Taste 1 Sekunde gedrückt: Dann geht es alle 0,3 Sekunden um ±10 weiter.
+Nach 3 Sekunden beschleunigt sie auf ±100 alle 0,3 Sekunden.
+Das Minimum ist 1, das Maximum {TOTAL}.
+
+■ Teile bewegen
+
+Du kannst alle noch nicht abgelegten Teile bewegen.
+Es gibt drei Steuerungsarten: Tippen, Wischen und Schnippen.
+
+Tippe auf ein noch nicht abgelegtes Teil, um es zu drehen.
+Bei jedem Tippen dreht es sich um 90 Grad gegen den Uhrzeigersinn.
+
+Wischen und Schnippen
+Berühre ein Teil, um es festzuhalten.
+Solange du es hältst, wird seine Kontur rot. Beim Loslassen wird sie wieder schwarz.
+
+Beim Wischen bewegst du den Finger mit dem festgehaltenen Teil und verschiebst es so.
+Kommt das Teil im Raster nahe an eine passende Stelle, rastet es dort ein und seine Kontur wird blau.
+Lass den Finger dort los, um das Teil abzulegen.
+Du kannst es an jeder passenden Stelle ablegen, auch wenn es dort nicht zur Lösung gehört.
+
+Beim Schnippen wischst du aus dem Haltezustand schnell und lässt das Teil dabei los.
+Normalerweise würde es dabei vom Bildschirm fliegen; hier wird es an der Stelle gespiegelt, an der du loslässt.
+Schnippe seitwärts, um es horizontal zu spiegeln.
+Schnippe nach oben oder unten, um es vertikal zu spiegeln.
+Die Bewegungsgeschwindigkeit beim Loslassen entscheidet, ob die Aktion als Wischen oder Schnippen erkannt wird.
+Diese Empfindlichkeit kannst du in den Einstellungen (Zahnradsymbol) anpassen.
+Der Standardwert ist 70 mm/s.
+
+■ Prüfen (Check) verwenden
+
+Jedes Rätsel hat nur eine Lösung.
+Darum erkennt das Spiel sofort, ob deine abgelegten Teile richtig sind.
+Wenn du unsicher bist, kannst du sie einfach prüfen.
+Ist alles richtig, gibt es keinen Punktabzug.
+
+■ Hinweis verwenden
+
+Der Hinweis prüft zuerst deine Lösung und entfernt alle falsch abgelegten Teile.
+Danach geht er die Lösung von hinten durch und setzt das erste noch fehlende Teil.
+Abgezogen werden die Anzahl der falschen Teile plus ein Hinweis.
+
+■ Über die Schwierigkeitsgrade
+
+Beim Lösen eines Pentominos setzt du die Teile der Reihe nach von links oben ein.
+Fülle dann die jeweilige Spalte und gehe anschließend nach rechts weiter.
+
+・{GUIDED} — {GUIDED_NOTE}
+  Nicht abgelegte Teile sind in der richtigen Reihenfolge angeordnet und passend ausgerichtet.
+  Ideal für absolute Anfänger oder als erstes Puzzle für kleine Kinder.
+
+・{TURN} — {TURN_NOTE}
+  Die Reihenfolge ist wie bei {GUIDED}, aber die Ausrichtung der Teile ist zurückgesetzt.
+  Vor dem Ablegen musst du die Teile drehen oder spiegeln.
+
+・{CLASSIC} — {CLASSIC_NOTE}
+  Die Teile sind alphabetisch nach Namen sortiert und unterschiedlich ausgerichtet.
+  Das ist der normale Schwierigkeitsgrad eines Pentominos.
+
+■ Einstellungen
+
+Öffne die Einstellungen mit der Zahnradschaltfläche rechts im oberen Band.
+Ein langer Druck auf den Rätselnamen öffnet sie ebenfalls.
+
+・Sprache: acht zur Auswahl. Diese Anleitung folgt deiner Wahl.
+・Anleitung: öffnet diesen Text.
+・Abschlusston: mit dieser Schaltfläche abschaltbar.
+・Das Einrasten meldet sich per Vibration, wo das Gerät vibrieren kann,
+  sonst per Ton. Das Gerät entscheidet; nie beides.
+・Modus: ein Wechsel löscht nichts. Jeder Modus behält seinen eigenen Fortschritt.
+  Zum Löschen dient die Schaltfläche neben dem Modus; nur dieser Modus ist betroffen.
+・Wischempfindlichkeit: verschiebt die Grenze zwischen Wischen und Schnippen
+  und stellt Dauer und Stärke des Signals ein.
+
+■ Literaturhinweise
+{Reference}

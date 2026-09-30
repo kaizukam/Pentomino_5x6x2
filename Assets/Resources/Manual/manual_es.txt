@@ -1,0 +1,109 @@
+// ============================================================
+// 
+// Español (スペイン語) - manual_es.txt
+//
+// 下の本文は英語のままです。この言語に訳して差し替えてください。
+// The text below is still English. Please replace it with Español.
+//
+// 訳し終えたら、この 3 行目の TRANSLATE ME を消してください。
+// メニュー Pentomino ▸ 説明書の翻訳状況を調べる で残りを確認できます。
+//
+// 「//」で始まる行は表示されません。
+//
+// 差し込み記号（そのまま残してください）
+//   {TOTAL}        問題の総数 / total number of puzzles
+//   {TABLE}        レベルごとの問題番号と割合の表 / puzzle count per level
+//   The line right before {TABLE} becomes the table heading.
+//   Separate the three columns with "|" (left | middle | right).
+//   {GUIDED} {TURN} {CLASSIC}                難易度の名前 / mode names
+//   {GUIDED_NOTE} {TURN_NOTE} {CLASSIC_NOTE} 一行説明 / one-line notes
+// ============================================================
+
+■ Número de puzles
+
+Los puzles van del nivel 1 (L1) al nivel 10 (L10).
+Hay {TOTAL} puzles en total.
+
+Nivel | N.º de puzle | Porcentaje
+{TABLE}
+
+■ Seleccionar un puzle
+
+Usa los botones Atrás (←) y Siguiente (→).
+Toca una vez para avanzar +1 o -1.
+Mantén pulsado 1 segundo para avanzar ±10 cada 0,3 segundos.
+Después de 3 segundos, la velocidad aumenta a ±100 cada 0,3 segundos.
+El mínimo es 1 y el máximo {TOTAL}.
+
+■ Mover las piezas
+
+Puedes mover cualquier pieza que aún no hayas colocado.
+Hay tres controles: tocar, deslizar y hacer un gesto rápido.
+
+Toca una pieza sin colocar para girarla.
+Cada toque la gira 90 grados en sentido antihorario.
+
+Deslizar y hacer un gesto rápido
+Pon el dedo sobre una pieza para sujetarla.
+Mientras la sujetas, su contorno se vuelve rojo. Vuelve a negro al soltarla.
+
+Para deslizarla, mueve el dedo sin soltar la pieza y así podrás desplazarla.
+Cuando la pieza entre en la cuadrícula y se acerque a un lugar donde encaje, se ajustará a esa posición y su contorno se volverá azul.
+Suelta el dedo allí para colocarla.
+Puedes colocarla donde encaje, aunque no sea la respuesta correcta.
+
+Para hacer un gesto rápido, da un impulso a la pieza mientras la sujetas y suéltala.
+Normalmente saldría despedida de la pantalla, pero aquí se voltea en el lugar donde la sueltes.
+Haz un gesto rápido en horizontal para voltearla de izquierda a derecha.
+Haz un gesto rápido en vertical para voltearla de arriba abajo.
+La velocidad de movimiento al soltar el dedo determina si la acción se considera un deslizamiento o un gesto rápido.
+Puedes ajustar esta sensibilidad en los ajustes (icono del engranaje).
+El valor predeterminado es 70 mm/s.
+
+■ Usar Comprobar (Check)
+
+Cada puzle tiene una única solución.
+Por eso, el juego sabe al instante si las piezas colocadas son correctas.
+Si tienes dudas, usa Comprobar para quedarte tranquilo.
+Si todo está bien, no se restan puntos.
+
+■ Usar una pista
+
+La pista primero comprueba el puzle y retira todas las piezas incorrectas.
+Después recorre la solución desde el final y coloca la primera pieza que aún falta.
+La penalización es el número de piezas incorrectas más una pista.
+
+■ Acerca de las dificultades
+
+Para resolver un pentominó, coloca las piezas en orden desde la esquina superior izquierda.
+Completa la columna y, después, avanza hacia la derecha.
+
+・{GUIDED} — {GUIDED_NOTE}
+  Las piezas sin colocar están ordenadas y ya tienen la orientación correcta.
+  Ideal para principiantes o como primer puzle para niños pequeños.
+
+・{TURN} — {TURN_NOTE}
+  El orden es el mismo que en {GUIDED}, pero la orientación de las piezas se reinicia.
+  Tendrás que girar o voltear las piezas antes de colocarlas.
+
+・{CLASSIC} — {CLASSIC_NOTE}
+  Las piezas están ordenadas alfabéticamente por nombre y sus orientaciones están mezcladas.
+  Esta es la dificultad habitual de un pentominó.
+
+■ Ajustes
+
+Abre los ajustes con el botón del engranaje, a la derecha de la banda superior.
+Una pulsación larga sobre el nombre del puzle también los abre.
+
+・Idioma: ocho a elegir. Este manual sigue tu elección.
+・Manual: abre este texto.
+・Sonido final: este botón lo apaga.
+・El encaje se avisa por vibración si el dispositivo puede vibrar,
+  y por sonido si no. Lo decide el dispositivo; nunca ambos.
+・Modo: cambiar no borra nada. Cada modo guarda su propio progreso.
+  Para borrarlo, usa el botón junto a ese modo; solo afecta a ese modo.
+・Sensibilidad del gesto: cambia el límite entre deslizar y gesto rápido,
+  y la duración y fuerza del aviso.
+
+■ Referencias
+{Reference}

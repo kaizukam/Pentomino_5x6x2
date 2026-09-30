@@ -67,5 +67,5 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "Pentomino_5x6x2.slnx"
+    "dotnet.defaultSolution": "Pentomino_6X10.slnx"
 }

@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7396c31dee392c4899822d032d7b3b4, type: 3}
+  m_Name: FontTable
+  m_EditorClassIdentifier: Pentomino.View::Pentomino.View.FontTable
+  _defaultRegular: {fileID: 12800000, guid: 6f9e69b8598c0d94c967c661b8ee4070, type: 3}
+  _defaultBold: {fileID: 0}
+  _entries:
+  - languageCode: ja
+    regular: {fileID: 12800000, guid: e205c5f7e41fda9429bef271195f1e86, type: 3}
+    bold: {fileID: 0}
+  - languageCode: ko
+    regular: {fileID: 12800000, guid: 963aa0644dce2a84fadc5e2f47e8f9c9, type: 3}
+    bold: {fileID: 0}
+  - languageCode: zh-Hans
+    regular: {fileID: 12800000, guid: b4bbe9f918097b3439aa663fe8423948, type: 3}
+    bold: {fileID: 0}
+  - languageCode: zh-Hant
+    regular: {fileID: 12800000, guid: 1d010521ca39999498913aeec00f4f47, type: 3}
+    bold: {fileID: 0}

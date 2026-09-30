@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    launcher 側の AndroidManifest.xml（Player Settings の Custom Launcher Manifest）。
+
+    Unity が Apk/LauncherManifest.xml として配っている雛形の写しに、
+    VIBRATE の権限を一行足しただけのもの。
+
+    なぜ要るか。Unity は「Handheld.Vibrate を呼んでいるか」を見て VIBRATE を
+    自動で足す。この遊びは合図の長さを決められないと困るので Android の API を
+    直に呼んでおり、Unity からはその使用が見えない。結果、権限の付かない apk が
+    出来ていた。権限が無くても振動子を探すところは通ってしまい、実際に震わせる
+    vibrate() で初めて弾かれるので、「起動時は振動できると言うのに、はめ込むと
+    音になる」という判りにくい形で出る。
+
+    ここに置いておけば、Windows でも Mac でも、書き出すたびに必ず入る。
+    Unity の雛形が将来変わっても、この写しは変わらない。Unity を上げたときは
+    <Unity>/Editor/Data/PlaybackEngines/AndroidPlayer/Apk/LauncherManifest.xml
+    と見比べること。
+-->
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:installLocation="preferExternal">
+
+    <!-- はめ込みの合図を振動で出すのに要る。Haptics を見ること。 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <supports-screens
+        android:smallScreens="true"
+        android:normalScreens="true"
+        android:largeScreens="true"
+        android:xlargeScreens="true"
+        android:anyDensity="true"/>
+
+    <application android:label="@string/app_name"
+                 android:icon="@mipmap/app_icon"/>
+</manifest>

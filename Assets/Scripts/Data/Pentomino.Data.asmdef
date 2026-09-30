@@ -1,0 +1,16 @@
+{
+    "name": "Pentomino.Data",
+    "rootNamespace": "Pentomino.Data",
+    "references": [
+        "Pentomino.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
