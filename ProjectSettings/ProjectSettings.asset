@@ -13,7 +13,7 @@ PlayerSettings:
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: Shonan Media Lab
-  productName: Pentomino6X10
+  productName: Pentomino 5x6x2
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
@@ -170,9 +170,9 @@ PlayerSettings:
   androidMaxAspectRatio: 2.4
   androidMinAspectRatio: 1
   applicationIdentifier:
-    Android: com.shonanmlab.pentomino6x10
+    Android: com.shonanmlab.pentomino5x6x2
     Standalone: com.Unity-Technologies.com.unity.template.urp-blank
-    iPhone: com.shonanmlab.pentomino6x10
+    iPhone: com.shonanmlab.pentomino5x6x2
   buildNumber:
     Standalone: 0
     VisionOS: 0
@@ -915,14 +915,14 @@ PlayerSettings:
   editorAssembliesCompatibilityLevel: 1
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
-  metroPackageName: Pentomino_6X10
+  metroPackageName: Pentomino_5x6x2
   metroPackageVersion: 
   metroCertificatePath: 
   metroCertificatePassword: 
   metroCertificateSubject: 
   metroCertificateIssuer: 
   metroCertificateNotAfter: 0000000000000000
-  metroApplicationDescription: Pentomino_6X10
+  metroApplicationDescription: Pentomino_5x6x2
   wsaImages: {}
   metroTileShortName: 
   metroTileShowName: 0
@@ -996,7 +996,7 @@ PlayerSettings:
   cloudProjectId: d40f4ef7-730a-4779-a054-055aca3633b4
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: Pentomino_6X10
+  projectName: Pentomino_5x6x2
   organizationId: unity_042aab81027ac28ca841
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
