@@ -1,0 +1,65 @@
+# Unity が自動生成するもの（Mac 側で作り直されるのでコピー不要）
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Visual Studio / Rider が作るもの
+/.vs/
+/.idea/
+/.gradle/
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# ビルド成果物
+*.apk
+*.aab
+*.unitypackage
+*.app
+ExportedObj/
+crashlytics-build.properties
+
+# OS が作るもの
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Unity の一時ファイル
+sysinfo.txt
+# テスト実行が中断されたときに残る一時シーン
+/[Aa]ssets/InitTestScene*.unity
+/[Aa]ssets/InitTestScene*.unity.meta
+*.stackdump
+
+# 打ち合わせ用の資料（原本は Obsidian Vault 側にある）
+# アプリが読むのは Assets/Resources/ だけなので、ここは追跡しない。
+# ファイルはディスク上に残るので、読むぶんには支障ない。
+/Data_5x6x2/
+
+# 焼き込みの前に控えたプレハブ（RuntimeBaker が作る）
+/Backup/
+
+# Android のビルド出力（Unity が書き出す。ビルドのたびに丸ごと変わる）
+# シンボルは端末に載せないもので、Mac 側でも使わない。
+/Android/
+/.utmp/
+
+# 元のフォント（削る前の姿）。削り直すときに使う。
+/Fonts_Full/
