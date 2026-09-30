@@ -23,11 +23,12 @@ namespace Pentomino.View
         /// 黒帯（Classic）の地。
         ///
         /// 真っ黒（#101010）ではピースの黒い外周線が地に溶けるので、
-        /// 少し明るい色にして様子を見ている（09-15: #555555 → #444444 → #222244 → #222222）。
+        /// 少し明るい色にしてある。6X10 で #555555 → #444444 → #222244 → #222222 と試し、
+        /// 5x6x2 では #333333 にした。
         /// 帯の絵（タイトル・級・レベル）の地も同じ色で描いてあるので、
         /// ここを変えるときは絵も差し替える（HeaderLayoutMigration.SourceFolder）。
         /// </summary>
-        public static readonly Color Black = new Color32(0x22, 0x22, 0x22, 0xFF);
+        public static readonly Color Black = new Color32(0x33, 0x33, 0x33, 0xFF);
 
         /// <summary>画面全体の地の色。</summary>
         public static Color Background(Difficulty difficulty)

@@ -40,18 +40,15 @@ namespace Pentomino.EditorTools
         private const string PrefabPath = UiPrefabBuilder.HeaderPath;
 
         /// <summary>
-        /// 絵の原稿。Git には入らない DataBase 側にある。
+        /// 絵の原稿。Git には入らない Data_5x6x2 側にある。
         ///
-        ///   20260914R  黒帯の地が #101010 の版
-        ///   2026_BB55R 黒帯の地が #555555 の版
-        ///   2026_BB44R 黒帯の地が #444444 の版
-        ///   2026_BB222244R 黒帯の地が #222244（紺）の版
-        ///   2026_BB222222R 黒帯の地が #222222 の版（09-15 から試している）
+        ///   IMG333333R 黒帯の地が #333333 の版。6X10 の最終版 2026_BB222222R と同じ組で、
+        ///              タイトルの字と黒帯の地の色だけが違う
         ///
         /// 地の色は GradeTheme.Black と対にして変える。食い違うと、写すときに
         /// 地を置き換えた警告が出るので気づける。
         /// </summary>
-        private const string SourceFolder = "DataBase/2026_BB222222R";
+        private const string SourceFolder = "Data_5x6x2/IMG333333R";
 
         /// <summary>写し先。プレハブから参照するので Assets の中に置く。</summary>
         public const string ArtFolder = "Assets/Resources/UI/Header";
