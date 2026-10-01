@@ -41,7 +41,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUTPUT = os.path.join(ROOT, "Store")
-ICON_SOURCE = os.path.join(ROOT, "Assets", "Textures", "AppIcon3.PNG")
+ICON_SOURCE = os.path.join(ROOT, "Assets", "Textures", "Apple-562.PNG")
 
 # ---------------------------------------------------------------- 配色
 #
