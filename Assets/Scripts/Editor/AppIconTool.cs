@@ -23,7 +23,7 @@ namespace Pentomino.EditorTools
         /// 絵を見比べるために番号を付けて増やしていくので、名前は固定できない。
         /// 見つからないときは Assets/Textures にある物を並べて知らせる。
         /// </summary>
-        public const string IconPath = "Assets/Textures/AppIcon3.PNG";
+        public const string IconPath = "Assets/Textures/AplIcon562.PNG";
 
         private const string IconFolder = "Assets/Textures";
 
