@@ -43,16 +43,29 @@ def load_source(path):
 
 
 def load_levels(path, groups):
-    """今の問題表から、Group ごとのレベルを読む（解の文字列で Group を引く）。"""
+    """今の問題表から、Group ごとのレベルと採用した Member を読む（解の文字列で Group を引く）。
+
+    見出しは "Answer" だったり "answer" だったりするので、列の位置で読む。
+    番号の頭の記号（"$" や "#"）も返し、書き出しで同じものを使う。
+    """
     by_answer = {m['answer']: m for members in groups.values() for m in members}
     levels = {}
+    chosen = {}
+    prefix = '$'
     with open(path, encoding='utf-8-sig', newline='') as f:
-        for row in csv.DictReader(f):
-            member = by_answer.get(row['Answer'].strip())
+        reader = csv.reader(f)
+        next(reader)
+        for row in reader:
+            if not row:
+                continue
+            if row[0][:1] in '$#':
+                prefix = row[0][0]
+            member = by_answer.get(row[2].strip())
             if member is None:
-                sys.exit('今の問題表の解が B5D_Answer.csv にありません: ' + row[next(iter(row))])
-            levels[member['group']] = int(row['Level'])
-    return levels
+                sys.exit('今の問題表の解が B5D_Answer.csv にありません: ' + row[0])
+            levels[member['group']] = int(row[1])
+            chosen[member['group']] = member
+    return levels, chosen, prefix
 
 
 def overlap(a, b):
@@ -121,6 +134,8 @@ def main():
     parser.add_argument('output', help='書き出す Hint_pattern.csv')
     parser.add_argument('--levels', help='レベルを引き継ぐ今の問題表。無ければ各 Group の Max')
     parser.add_argument('--window', type=int, default=2, help='似ていないか比べる、前の問題の数')
+    parser.add_argument('--keep-members', action='store_true',
+                        help='--levels の表が採用した Member をそのまま使い、並び順だけを変える')
     args = parser.parse_args()
 
     groups = load_source(args.source)
@@ -128,7 +143,13 @@ def main():
         for m in members:
             m['tokens'] = tokens(m['answer'])
 
-    levels = load_levels(args.levels, groups) if args.levels else {g: ms[0]['max'] for g, ms in groups.items()}
+    if args.keep_members and not args.levels:
+        sys.exit('--keep-members には --levels が要ります')
+    if args.levels:
+        levels, chosen, prefix = load_levels(args.levels, groups)
+    else:
+        levels, chosen, prefix = {g: ms[0]['max'] for g, ms in groups.items()}, {}, '$'
+
     missing = sorted(set(groups) - set(levels), key=int)
     if missing:
         sys.exit('レベルの決まらない Group があります: ' + ', '.join(missing))
@@ -136,7 +157,10 @@ def main():
     by_level = collections.defaultdict(dict)
     for group, members in groups.items():
         level = levels[group]
-        candidates = [m for m in members if m['level'] == level]
+        if args.keep_members:
+            candidates = [chosen[group]]
+        else:
+            candidates = [m for m in members if m['level'] == level]
         if not candidates:
             sys.exit('Group %s にレベル %d の Member がありません' % (group, level))
         by_level[level][group] = candidates
@@ -148,7 +172,7 @@ def main():
     with open(args.output, 'w', encoding='utf-8-sig', newline='') as f:
         f.write('Group,Level,Answer\r\n')
         for number, m in enumerate(rows, 1):
-            f.write('$%04d,%d,%s\r\n' % (number, m['level'], m['answer']))
+            f.write('%s%04d,%d,%s\r\n' % (prefix, number, m['level'], m['answer']))
 
     # 隣り合う問題の共通ピース数の分布を出して、並べ替えの効き目を見る。
     counts = collections.Counter()
